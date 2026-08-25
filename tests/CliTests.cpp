@@ -4,6 +4,7 @@
 #include "Check.hpp"
 #include "CommandLine.hpp"
 #include "PolicyRegistry.hpp"
+#include "JsonReport.hpp"
 #include "TextReport.hpp"
 #include "Tests.hpp"
 #include "WorkloadParser.hpp"
@@ -311,6 +312,153 @@ void testFullReportHasEverySection() {
     check(report.find("Per process") != std::string::npos, "has the table");
     check(report.find("Averages") != std::string::npos, "has the averages");
 }
+
+
+// JSON output and comparison
+
+void testJsonHasEveryTopLevelField() {
+    std::cout << "JSON contains every top level field\n";
+
+    const std::string json = renderJson(runSample("FCFS"));
+
+    check(json.find("\"algorithm\": \"FCFS\"") != std::string::npos, "algorithm");
+    check(json.find("\"totalTime\": 9") != std::string::npos, "total time");
+    check(json.find("\"busyTime\": 9") != std::string::npos, "busy time");
+    check(json.find("\"timeline\"") != std::string::npos, "timeline");
+    check(json.find("\"processes\"") != std::string::npos, "processes");
+    check(json.find("\"averages\"") != std::string::npos, "averages");
+}
+
+void testJsonUsesNullForIdleTime() {
+    std::cout << "JSON marks idle stretches with null\n";
+
+    const std::vector<scheduler::Process> gap = {{"P1", 0, 2, 0}, {"P2", 6, 2, 0}};
+    auto policy = scheduler::makePolicy("FCFS");
+    const std::string json = renderJson(scheduler::runSimulation(gap, *policy));
+
+    check(json.find("\"processId\": null") != std::string::npos, "idle slice is null");
+}
+
+void testJsonEscapesAwkwardIds() {
+    std::cout << "JSON escapes quotes and backslashes in process ids\n";
+
+    const std::vector<scheduler::Process> awkward = {{"a\"b", 0, 1, 0}, {"c\\d", 1, 1, 0}};
+    auto policy = scheduler::makePolicy("FCFS");
+    const std::string json = renderJson(scheduler::runSimulation(awkward, *policy));
+
+    check(json.find("\"a\\\"b\"") != std::string::npos, "quote escaped");
+    check(json.find("\"c\\\\d\"") != std::string::npos, "backslash escaped");
+}
+
+void testJsonAvoidsScientificNotation() {
+    std::cout << "JSON writes small numbers in plain decimal\n";
+
+    // A long run makes throughput small enough that a naive writer would emit
+    // something like 1e-05.
+    std::vector<scheduler::Process> many;
+    many.push_back({"P1", 0, 20000, 0});
+    auto policy = scheduler::makePolicy("FCFS");
+    const std::string json = renderJson(scheduler::runSimulation(many, *policy));
+
+    check(json.find("e-") == std::string::npos, "no exponent notation");
+    check(json.find("\"throughput\": 0.0001") != std::string::npos, "written in full");
+}
+
+void testJsonOfSeveralRuns() {
+    std::cout << "JSON of a comparison wraps the runs in an array\n";
+
+    const std::vector<scheduler::SimulationResult> results = {runSample("FCFS"),
+                                                              runSample("SJF")};
+    const std::string json = renderJson(results);
+
+    check(json.find("\"runs\"") != std::string::npos, "has a runs array");
+    check(json.find("\"FCFS\"") != std::string::npos, "first algorithm");
+    check(json.find("\"SJF\"") != std::string::npos, "second algorithm");
+    check(json.find("},\n  {") != std::string::npos, "entries separated by a comma");
+}
+
+void testJsonBracketsAreBalanced() {
+    std::cout << "JSON brackets and braces are balanced\n";
+
+    const std::vector<scheduler::SimulationResult> results = {runSample("RR"), runSample("SRTF")};
+    const std::string json = renderJson(results);
+
+    int braces = 0;
+    int brackets = 0;
+    bool inString = false;
+    for (std::size_t i = 0; i < json.size(); ++i) {
+        const char c = json[i];
+        if (c == '"' && (i == 0 || json[i - 1] != '\\')) {
+            inString = !inString;
+        }
+        if (inString) {
+            continue;
+        }
+        if (c == '{') ++braces;
+        if (c == '}') --braces;
+        if (c == '[') ++brackets;
+        if (c == ']') --brackets;
+    }
+    checkEqual(braces, 0, "braces balanced");
+    checkEqual(brackets, 0, "brackets balanced");
+}
+
+void testComparisonTableHasARowPerAlgorithm() {
+    std::cout << "Comparison table has one row per algorithm\n";
+
+    const std::vector<scheduler::SimulationResult> results = {
+        runSample("FCFS"), runSample("SJF"), runSample("SRTF")};
+    const std::string table = renderComparison(results);
+    std::vector<std::string> lines = linesOf(table);
+
+    check(lines[0].find("Algorithm") != std::string::npos, "header row");
+    check(lines[1].find("FCFS") != std::string::npos, "FCFS row");
+    check(lines[3].find("SRTF") != std::string::npos, "SRTF row");
+}
+
+void testComparisonNamesTheWinner() {
+    std::cout << "Comparison names the best algorithm on each measure\n";
+
+    const std::vector<scheduler::SimulationResult> results = {runSample("FCFS"),
+                                                              runSample("SRTF")};
+    const std::string table = renderComparison(results);
+
+    // SRTF has the lowest waiting time on this workload.
+    const std::size_t line = table.find("Lowest average waiting time");
+    check(line != std::string::npos, "reports the waiting time winner");
+    check(table.find("SRTF", line) != std::string::npos, "and it is SRTF");
+}
+
+void testComparisonOfNothingIsEmpty() {
+    std::cout << "Comparison of nothing is empty\n";
+
+    checkEqual(renderComparison({}), std::string(""), "no output");
+}
+
+void testCommandLineReadsCompareAndFormat() {
+    std::cout << "Command line reads --compare and --format\n";
+
+    CommandLine all = parseCommandLine({"--compare", "all"});
+    check(all.ok(), "compare all parses");
+    checkEqual(all.compare.size(), size_t{5}, "expands to every algorithm");
+
+    CommandLine some = parseCommandLine({"-c", "FCFS,SJF"});
+    check(some.ok(), "comma separated list parses");
+    checkEqual(some.compare.size(), size_t{2}, "two algorithms");
+
+    CommandLine json = parseCommandLine({"--format", "json"});
+    check(json.format == OutputFormat::Json, "json format");
+    check(parseCommandLine({}).format == OutputFormat::Text, "text by default");
+}
+
+void testCommandLineRejectsBadCompareAndFormat() {
+    std::cout << "Command line rejects bad --compare and --format values\n";
+
+    check(!parseCommandLine({"--compare", "FCFS,NOPE"}).ok(), "unknown name in the list");
+    check(!parseCommandLine({"--compare", "FCFS"}).ok(), "a comparison of one is pointless");
+    check(!parseCommandLine({"--format", "xml"}).ok(), "unsupported format");
+    check(!parseCommandLine({"--format"}).ok(), "format with no value");
+}
 }  // namespace
 
 void runCliTests() {
@@ -333,6 +481,17 @@ void runCliTests() {
     testMetricsTableOfNothingIsEmpty();
     testAveragesAreRoundedToTwoPlaces();
     testFullReportHasEverySection();
+    testJsonHasEveryTopLevelField();
+    testJsonUsesNullForIdleTime();
+    testJsonEscapesAwkwardIds();
+    testJsonAvoidsScientificNotation();
+    testJsonOfSeveralRuns();
+    testJsonBracketsAreBalanced();
+    testComparisonTableHasARowPerAlgorithm();
+    testComparisonNamesTheWinner();
+    testComparisonOfNothingIsEmpty();
+    testCommandLineReadsCompareAndFormat();
+    testCommandLineRejectsBadCompareAndFormat();
     testCommandLineDefaults();
     testCommandLineReadsOptions();
     testCommandLineRejectsBadInput();

@@ -1,6 +1,7 @@
 #include "CommandLine.hpp"
 
 #include <charconv>
+#include <sstream>
 
 #include "PolicyRegistry.hpp"
 
@@ -27,6 +28,18 @@ bool takeValue(const std::vector<std::string>& args, std::size_t& i, std::string
     return true;
 }
 
+std::vector<std::string> splitOnCommas(const std::string& text) {
+    std::vector<std::string> parts;
+    std::istringstream input(text);
+    std::string part;
+    while (std::getline(input, part, ',')) {
+        if (!part.empty()) {
+            parts.push_back(part);
+        }
+    }
+    return parts;
+}
+
 }  // namespace
 
 CommandLine parseCommandLine(const std::vector<std::string>& args) {
@@ -47,6 +60,33 @@ CommandLine parseCommandLine(const std::vector<std::string>& args) {
                 parsed.errors.push_back("unknown algorithm '" + value + "'");
             } else {
                 parsed.algorithm = value;
+            }
+        } else if (arg == "-c" || arg == "--compare") {
+            if (!takeValue(args, i, value)) {
+                parsed.errors.push_back(arg + " needs a list of algorithms, or 'all'");
+            } else if (value == "all") {
+                parsed.compare = scheduler::availablePolicies();
+            } else {
+                for (const std::string& name : splitOnCommas(value)) {
+                    if (scheduler::makePolicy(name) == nullptr) {
+                        parsed.errors.push_back("unknown algorithm '" + name + "'");
+                    } else {
+                        parsed.compare.push_back(name);
+                    }
+                }
+                if (parsed.compare.size() == 1) {
+                    parsed.errors.push_back("--compare needs at least two algorithms");
+                }
+            }
+        } else if (arg == "-f" || arg == "--format") {
+            if (!takeValue(args, i, value)) {
+                parsed.errors.push_back(arg + " needs 'text' or 'json'");
+            } else if (value == "text") {
+                parsed.format = OutputFormat::Text;
+            } else if (value == "json") {
+                parsed.format = OutputFormat::Json;
+            } else {
+                parsed.errors.push_back("unknown format '" + value + "', expected text or json");
             }
         } else if (arg == "-q" || arg == "--quantum") {
             if (!takeValue(args, i, value)) {
@@ -77,7 +117,7 @@ CommandLine parseCommandLine(const std::vector<std::string>& args) {
 }
 
 std::string helpText() {
-    std::string text =
+    return
         "CPU scheduling simulator\n"
         "\n"
         "Usage:\n"
@@ -85,6 +125,9 @@ std::string helpText() {
         "\n"
         "Options:\n"
         "  -a, --algorithm NAME  algorithm to run (default: FCFS)\n"
+        "  -c, --compare LIST    run several algorithms on the same workload,\n"
+        "                        comma separated, or 'all'\n"
+        "  -f, --format FORMAT   text or json (default: text)\n"
         "  -q, --quantum N       time slice for Round Robin (default: 2)\n"
         "  -g, --aging N         priority gained per N ticks waited (default: 0, off)\n"
         "  -i, --input FILE      workload file (default: standard input)\n"
@@ -94,9 +137,10 @@ std::string helpText() {
         "Workload format - one process per line, '#' starts a comment:\n"
         "  ID  ARRIVAL  BURST  [PRIORITY]\n"
         "\n"
-        "Example:\n"
-        "  scheduler --algorithm RR --quantum 3 --input examples/sample.txt\n";
-    return text;
+        "Examples:\n"
+        "  scheduler --algorithm RR --quantum 3 --input examples/sample.txt\n"
+        "  scheduler --compare all --input examples/sample.txt\n"
+        "  scheduler --compare FCFS,SJF --format json --input examples/sample.txt\n";
 }
 
 }  // namespace cli

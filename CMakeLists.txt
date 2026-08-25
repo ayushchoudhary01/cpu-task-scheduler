@@ -36,6 +36,7 @@ add_library(scheduler_cli
     cli/WorkloadParser.cpp
     cli/CommandLine.cpp
     cli/TextReport.cpp
+    cli/JsonReport.cpp
 )
 target_include_directories(scheduler_cli PUBLIC cli)
 target_link_libraries(scheduler_cli PUBLIC scheduler_core)

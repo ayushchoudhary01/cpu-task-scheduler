@@ -5,12 +5,19 @@
 
 namespace cli {
 
+enum class OutputFormat {
+    Text,   // Gantt chart and tables for a terminal
+    Json    // machine readable, used by the web interface
+};
+
 // Everything the user asked for on the command line.
 struct CommandLine {
     std::string algorithm = "FCFS";
-    int quantum = 2;                 // Round Robin only
-    int agingRate = 0;               // Priority only, 0 disables aging
-    std::string inputPath;           // empty means read standard input
+    int quantum = 2;                       // Round Robin only
+    int agingRate = 0;                     // Priority only, 0 disables aging
+    std::string inputPath;                 // empty means read standard input
+    OutputFormat format = OutputFormat::Text;
+    std::vector<std::string> compare;      // empty unless --compare was given
     bool showHelp = false;
     bool listAlgorithms = false;
 

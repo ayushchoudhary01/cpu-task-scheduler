@@ -23,4 +23,7 @@ std::string renderAverages(const scheduler::Averages& averages);
 // Everything above, with headings.
 std::string renderReport(const scheduler::SimulationResult& result);
 
+// One row per algorithm, for comparing several runs of the same workload.
+std::string renderComparison(const std::vector<scheduler::SimulationResult>& results);
+
 }  // namespace cli

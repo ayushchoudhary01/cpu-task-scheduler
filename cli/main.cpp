@@ -4,6 +4,7 @@
 
 #include "CommandLine.hpp"
 #include "Engine.hpp"
+#include "JsonReport.hpp"
 #include "PolicyRegistry.hpp"
 #include "TextReport.hpp"
 #include "WorkloadParser.hpp"
@@ -17,6 +18,19 @@ void printErrors(const std::string& heading, const std::vector<std::string>& err
     for (const std::string& error : errors) {
         std::cerr << "  " << error << "\n";
     }
+}
+
+// Run one workload through every named algorithm.
+std::vector<SimulationResult> runAll(const std::vector<Process>& workload,
+                                     const std::vector<std::string>& names,
+                                     const PolicyOptions& options) {
+    std::vector<SimulationResult> results;
+    results.reserve(names.size());
+    for (const std::string& name : names) {
+        const auto policy = makePolicy(name, options);
+        results.push_back(runSimulation(workload, *policy));
+    }
+    return results;
 }
 
 }  // namespace
@@ -64,8 +78,24 @@ int main(int argc, char** argv) {
     policyOptions.quantum = options.quantum;
     policyOptions.agingRate = options.agingRate;
 
-    const auto policy = makePolicy(options.algorithm, policyOptions);
-    std::cout << cli::renderReport(runSimulation(workload.processes, *policy));
+    const bool comparing = !options.compare.empty();
+    const std::vector<std::string> names =
+        comparing ? options.compare : std::vector<std::string>{options.algorithm};
 
+    const std::vector<SimulationResult> results =
+        runAll(workload.processes, names, policyOptions);
+
+    if (options.format == cli::OutputFormat::Json) {
+        std::cout << (comparing ? cli::renderJson(results) : cli::renderJson(results.front()));
+        return 0;
+    }
+
+    if (comparing) {
+        std::cout << "Comparison of " << results.size() << " algorithms on "
+                  << workload.processes.size() << " processes\n\n";
+        std::cout << cli::renderComparison(results);
+    } else {
+        std::cout << cli::renderReport(results.front());
+    }
     return 0;
 }

@@ -135,4 +135,50 @@ std::string renderReport(const SimulationResult& result) {
     return out.str();
 }
 
+std::string renderComparison(const std::vector<SimulationResult>& results) {
+    if (results.empty()) {
+        return "";
+    }
+
+    std::size_t nameWidth = std::string("Algorithm").size();
+    for (const SimulationResult& result : results) {
+        nameWidth = std::max(nameWidth, result.algorithm.size());
+    }
+
+    std::ostringstream out;
+    out << kIndent << std::left << std::setw(static_cast<int>(nameWidth)) << "Algorithm"
+        << std::right << std::setw(10) << "Waiting" << std::setw(12) << "Turnaround"
+        << std::setw(10) << "Response" << std::setw(9) << "CPU %" << std::setw(8) << "Total"
+        << "\n";
+
+    out << std::fixed << std::setprecision(2);
+    for (const SimulationResult& result : results) {
+        out << kIndent << std::left << std::setw(static_cast<int>(nameWidth)) << result.algorithm
+            << std::right << std::setw(10) << result.averages.waitingTime
+            << std::setw(12) << result.averages.turnaroundTime
+            << std::setw(10) << result.averages.responseTime
+            << std::setw(9) << result.averages.cpuUtilization
+            << std::setw(8) << result.timeline.totalTime() << "\n";
+    }
+
+    // Point out the winner on each measure. Every algorithm does the same
+    // total work, so these are the differences that actually matter.
+    const SimulationResult* bestWaiting = &results.front();
+    const SimulationResult* bestResponse = &results.front();
+    for (const SimulationResult& result : results) {
+        if (result.averages.waitingTime < bestWaiting->averages.waitingTime) {
+            bestWaiting = &result;
+        }
+        if (result.averages.responseTime < bestResponse->averages.responseTime) {
+            bestResponse = &result;
+        }
+    }
+
+    out << "\n" << kIndent << "Lowest average waiting time:  " << bestWaiting->algorithm
+        << " (" << bestWaiting->averages.waitingTime << ")\n";
+    out << kIndent << "Lowest average response time: " << bestResponse->algorithm
+        << " (" << bestResponse->averages.responseTime << ")\n";
+    return out.str();
+}
+
 }  // namespace cli
