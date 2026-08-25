@@ -1,12 +1,16 @@
 #include <iostream>
 
 #include "Check.hpp"
+#include "Engine.hpp"
 #include "Metrics.hpp"
 #include "Timeline.hpp"
 
 using namespace scheduler;
 using testing::check;
 using testing::checkEqual;
+
+
+// Timeline and Metrics
 
 static void testTimelineMergesRepeatedTicks() {
     std::cout << "Timeline merges repeated ticks\n";
@@ -48,34 +52,12 @@ static void testEmptyTimeline() {
 static void testProcessMetrics() {
     std::cout << "Per-process metrics\n";
 
-    // P1 arrives at 2, needs 4 ticks, first runs at 5, finishes at 9.
     Process p{"P1", 2, 4, 0};
     ProcessMetrics m = makeMetrics(p, 5, 9);
 
     checkEqual(m.turnaroundTime, 7, "turnaround = 9 - 2");
     checkEqual(m.waitingTime, 3, "waiting = 7 - 4");
     checkEqual(m.responseTime, 3, "response = 5 - 2");
-}
-
-static void testAverages() {
-    std::cout << "Averages across processes\n";
-
-    Timeline timeline;
-    timeline.runProcess(0, "P1");
-    timeline.runProcess(1, "P1");
-    timeline.runIdle(2);
-    timeline.runProcess(3, "P2");
-
-    std::vector<ProcessMetrics> metrics = {
-        makeMetrics({"P1", 0, 2, 0}, 0, 2),
-        makeMetrics({"P2", 3, 1, 0}, 3, 4),
-    };
-
-    Averages averages = computeAverages(metrics, timeline);
-
-    checkEqual(averages.waitingTime, 0.0, "neither process waited");
-    checkEqual(averages.turnaroundTime, 1.5, "turnarounds of 2 and 1 average to 1.5");
-    checkEqual(averages.cpuUtilization, 75.0, "busy 3 ticks out of 4");
 }
 
 static void testAveragesOfNothing() {
@@ -88,12 +70,101 @@ static void testAveragesOfNothing() {
     checkEqual(averages.cpuUtilization, 0.0, "utilization is zero");
 }
 
+// Engine
+//
+// These use stub policies rather than real algorithms, so that the engine is
+// tested on its own. The real algorithms arrive in the next chunks.
+
+// Always runs whoever has been ready longest, and never interrupts anyone.
+class AlwaysFirst : public SchedulingPolicy {
+public:
+    std::string name() const override { return "STUB-FIRST"; }
+    std::size_t choose(const std::vector<ReadyProcess>&, int) const override { return 0; }
+};
+
+// Interrupts the running process on every single tick. Nothing sensible would
+// schedule this way - it exists to hammer the preemption path.
+class AlwaysPreempt : public SchedulingPolicy {
+public:
+    std::string name() const override { return "STUB-PREEMPT"; }
+    std::size_t choose(const std::vector<ReadyProcess>&, int) const override { return 0; }
+    bool shouldPreempt(const ReadyProcess&, const std::vector<ReadyProcess>&, int) const override {
+        return true;
+    }
+};
+
+static void testEngineRunsOneProcess() {
+    std::cout << "Engine runs a single process straight through\n";
+
+    std::vector<Process> workload = {{"P1", 0, 3, 0}};
+    SimulationResult result = runSimulation(workload, AlwaysFirst());
+
+    checkEqual(result.timeline.slices().size(), size_t{1}, "one slice");
+    checkEqual(result.timeline.totalTime(), 3, "finished at tick 3");
+    checkEqual(result.metrics[0].completionTime, 3, "completed at 3");
+    checkEqual(result.metrics[0].waitingTime, 0, "never waited");
+    checkEqual(result.metrics[0].responseTime, 0, "ran immediately");
+}
+
+static void testEngineIdlesUntilArrival() {
+    std::cout << "Engine idles while nothing has arrived\n";
+
+    std::vector<Process> workload = {{"P1", 2, 2, 0}};
+    SimulationResult result = runSimulation(workload, AlwaysFirst());
+
+    checkEqual(result.timeline.slices().size(), size_t{2}, "an idle slice then a running one");
+    check(result.timeline.slices()[0].kind == SliceKind::Idle, "starts idle");
+    checkEqual(result.timeline.totalTime(), 4, "finished at tick 4");
+    checkEqual(result.timeline.busyTime(), 2, "busy for 2 ticks");
+    checkEqual(result.averages.cpuUtilization, 50.0, "CPU used half the time");
+}
+
+static void testEngineKeepsInputOrderInMetrics() {
+    std::cout << "Engine reports metrics in input order, not completion order\n";
+
+    // P2 is listed first but arrives later, so it finishes last.
+    std::vector<Process> workload = {{"P2", 5, 1, 0}, {"P1", 0, 1, 0}};
+    SimulationResult result = runSimulation(workload, AlwaysFirst());
+
+    checkEqual(result.metrics[0].id, std::string("P2"), "first row is P2");
+    checkEqual(result.metrics[1].id, std::string("P1"), "second row is P1");
+}
+
+static void testFinishedProcessIsNeverRescheduled() {
+    std::cout << "A finished process is never scheduled again\n";
+
+    // This is the shape of bug that hangs the reference project: a completed
+    // process going back into the ready queue and being picked forever.
+    std::vector<Process> workload = {{"P1", 0, 2, 0}, {"P2", 0, 2, 0}};
+    SimulationResult result = runSimulation(workload, AlwaysPreempt());
+
+    checkEqual(result.timeline.totalTime(), 4, "total time is exactly the work required");
+    checkEqual(result.timeline.busyTime(), 4, "no tick was wasted on a finished process");
+    checkEqual(result.metrics[0].completionTime, 3, "P1 finished at 3");
+    checkEqual(result.metrics[1].completionTime, 4, "P2 finished at 4");
+    checkEqual(result.averages.cpuUtilization, 100.0, "CPU fully used");
+}
+
+static void testEmptyWorkload() {
+    std::cout << "Engine handles an empty workload\n";
+
+    SimulationResult result = runSimulation({}, AlwaysFirst());
+    checkEqual(result.metrics.size(), size_t{0}, "no metrics");
+    checkEqual(result.timeline.totalTime(), 0, "no time passed");
+}
+
 int main() {
     testTimelineMergesRepeatedTicks();
     testTimelineSplitsOnChange();
     testEmptyTimeline();
     testProcessMetrics();
-    testAverages();
     testAveragesOfNothing();
+
+    testEngineRunsOneProcess();
+    testEngineIdlesUntilArrival();
+    testEngineKeepsInputOrderInMetrics();
+    testFinishedProcessIsNeverRescheduled();
+    testEmptyWorkload();
+
     return testing::report();
 }

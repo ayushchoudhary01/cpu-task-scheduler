@@ -19,6 +19,7 @@ endif()
 add_library(scheduler_core
     core/Timeline.cpp
     core/Metrics.cpp
+    core/Engine.cpp
 )
 target_include_directories(scheduler_core PUBLIC core)
 target_compile_options(scheduler_core PRIVATE ${WARNING_FLAGS})
