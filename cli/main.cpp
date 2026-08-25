@@ -3,10 +3,7 @@
 #include <vector>
 
 #include "Engine.hpp"
-#include "policies/FcfsPolicy.hpp"
-#include "policies/RoundRobinPolicy.hpp"
-#include "policies/SjfPolicy.hpp"
-#include "policies/SrtfPolicy.hpp"
+#include "PolicyRegistry.hpp"
 
 using namespace scheduler;
 
@@ -30,25 +27,25 @@ void printResult(const SimulationResult& result) {
 
 }  // namespace
 
-// Temporary demo: a fixed workload run through the algorithms built so far.
+// Temporary demo: a fixed workload run through every algorithm.
 // Real input handling arrives with the command line interface.
 int main() {
     const std::vector<Process> workload = {
-        {"P1", 0, 5, 0},
-        {"P2", 1, 3, 0},
-        {"P3", 2, 1, 0},
+        {"P1", 0, 5, 3},
+        {"P2", 1, 3, 1},
+        {"P3", 2, 1, 2},
     };
 
     std::cout << "Workload:\n";
     for (const Process& p : workload) {
         std::cout << "  " << p.id << "  arrival=" << p.arrivalTime
-                  << "  burst=" << p.burstTime << "\n";
+                  << "  burst=" << p.burstTime << "  priority=" << p.priority << "\n";
     }
 
-    printResult(runSimulation(workload, policies::FcfsPolicy()));
-    printResult(runSimulation(workload, policies::SjfPolicy()));
-    printResult(runSimulation(workload, policies::SrtfPolicy()));
-    printResult(runSimulation(workload, policies::RoundRobinPolicy(2)));
+    for (const std::string& name : availablePolicies()) {
+        auto policy = makePolicy(name);
+        printResult(runSimulation(workload, *policy));
+    }
 
     return 0;
 }

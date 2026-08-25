@@ -4,5 +4,6 @@
 int main() {
     runCoreTests();
     runAlgorithmTests();
+    runPriorityTests();
     return testing::report();
 }

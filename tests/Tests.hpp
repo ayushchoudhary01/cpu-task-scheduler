@@ -4,3 +4,4 @@
 // main.cpp runs them all and reports the tally.
 void runCoreTests();
 void runAlgorithmTests();
+void runPriorityTests();
