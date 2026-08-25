@@ -1,11 +1,11 @@
 #include <fstream>
-#include <iomanip>
 #include <iostream>
 #include <vector>
 
 #include "CommandLine.hpp"
 #include "Engine.hpp"
 #include "PolicyRegistry.hpp"
+#include "TextReport.hpp"
 #include "WorkloadParser.hpp"
 
 using namespace scheduler;
@@ -17,30 +17,6 @@ void printErrors(const std::string& heading, const std::vector<std::string>& err
     for (const std::string& error : errors) {
         std::cerr << "  " << error << "\n";
     }
-}
-
-void printResult(const SimulationResult& result) {
-    std::cout << result.algorithm << "\n\n";
-
-    std::cout << "Timeline:\n";
-    for (const TimeSlice& slice : result.timeline.slices()) {
-        std::cout << "  [" << slice.start << ", " << slice.end << ")  "
-                  << (slice.kind == SliceKind::Idle ? "idle" : slice.processId) << "\n";
-    }
-
-    std::cout << "\nPer process:\n";
-    for (const ProcessMetrics& m : result.metrics) {
-        std::cout << "  " << m.id << "  completed=" << m.completionTime
-                  << "  turnaround=" << m.turnaroundTime << "  waiting=" << m.waitingTime
-                  << "  response=" << m.responseTime << "\n";
-    }
-
-    std::cout << std::fixed << std::setprecision(2);
-    std::cout << "\nAverages:\n";
-    std::cout << "  waiting time:    " << result.averages.waitingTime << "\n";
-    std::cout << "  turnaround time: " << result.averages.turnaroundTime << "\n";
-    std::cout << "  response time:   " << result.averages.responseTime << "\n";
-    std::cout << "  CPU utilization: " << result.averages.cpuUtilization << "%\n";
 }
 
 }  // namespace
@@ -89,7 +65,7 @@ int main(int argc, char** argv) {
     policyOptions.agingRate = options.agingRate;
 
     const auto policy = makePolicy(options.algorithm, policyOptions);
-    printResult(runSimulation(workload.processes, *policy));
+    std::cout << cli::renderReport(runSimulation(workload.processes, *policy));
 
     return 0;
 }

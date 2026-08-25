@@ -35,6 +35,7 @@ target_compile_options(scheduler_core PRIVATE ${WARNING_FLAGS})
 add_library(scheduler_cli
     cli/WorkloadParser.cpp
     cli/CommandLine.cpp
+    cli/TextReport.cpp
 )
 target_include_directories(scheduler_cli PUBLIC cli)
 target_link_libraries(scheduler_cli PUBLIC scheduler_core)
