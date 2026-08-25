@@ -22,6 +22,8 @@ add_library(scheduler_core
     core/Engine.cpp
     core/policies/FcfsPolicy.cpp
     core/policies/SjfPolicy.cpp
+    core/policies/SrtfPolicy.cpp
+    core/policies/RoundRobinPolicy.cpp
 )
 target_include_directories(scheduler_core PUBLIC core)
 target_compile_options(scheduler_core PRIVATE ${WARNING_FLAGS})

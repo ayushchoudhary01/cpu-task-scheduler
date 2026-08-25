@@ -7,14 +7,11 @@
 
 namespace scheduler::policies {
 
-// Has `a` been waiting longer than `b`?
-// This is the tie-break every policy must use: longest wait first, and if even
-// that is equal, the process listed first in the input.
-inline bool waitedLonger(const ReadyProcess& a, const ReadyProcess& b) {
-    if (a.readySince != b.readySince) {
-        return a.readySince < b.readySince;
-    }
-    return a.index < b.index;
+// Did `a` join the ready queue before `b`?
+// This is the tie-break every policy must use, and it is a total order, so the
+// result of a simulation never depends on vector ordering.
+inline bool joinedQueueFirst(const ReadyProcess& a, const ReadyProcess& b) {
+    return a.queueOrder < b.queueOrder;
 }
 
 // Pick the best ready process.
@@ -32,7 +29,7 @@ std::size_t selectBest(const std::vector<ReadyProcess>& ready, IsBetter isBetter
 
         if (isBetter(candidate, incumbent)) {
             best = i;
-        } else if (!isBetter(incumbent, candidate) && waitedLonger(candidate, incumbent)) {
+        } else if (!isBetter(incumbent, candidate) && joinedQueueFirst(candidate, incumbent)) {
             best = i;
         }
     }

@@ -38,6 +38,7 @@ SimulationResult runSimulation(const std::vector<Process>& processes,
 
     int currentTime = 0;
     int ticksOnCpu = 0;                // how long `running` has held the CPU
+    long long nextQueueOrder = 0;      // stamped on each process as it queues
     std::size_t nextArrival = 0;
     std::size_t completed = 0;
 
@@ -46,7 +47,8 @@ SimulationResult runSimulation(const std::vector<Process>& processes,
         while (nextArrival < order.size() &&
                processes[order[nextArrival]].arrivalTime <= currentTime) {
             const std::size_t i = order[nextArrival];
-            ready.push_back({&processes[i], processes[i].burstTime, currentTime, -1, i});
+            ready.push_back(
+                {&processes[i], processes[i].burstTime, currentTime, nextQueueOrder++, -1, i});
             ++nextArrival;
         }
 
@@ -57,7 +59,10 @@ SimulationResult runSimulation(const std::vector<Process>& processes,
 
             if (!ready.empty() &&
                 (sliceUsedUp || policy.shouldPreempt(running, ready, currentTime))) {
+                // Queued after any process admitted above, which is what puts
+                // a fresh arrival ahead of one that just used up its slice.
                 running.readySince = currentTime;
+                running.queueOrder = nextQueueOrder++;
                 ready.push_back(running);
                 cpuBusy = false;
             } else if (sliceUsedUp) {

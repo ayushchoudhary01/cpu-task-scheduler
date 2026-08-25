@@ -4,7 +4,9 @@
 
 #include "Engine.hpp"
 #include "policies/FcfsPolicy.hpp"
+#include "policies/RoundRobinPolicy.hpp"
 #include "policies/SjfPolicy.hpp"
+#include "policies/SrtfPolicy.hpp"
 
 using namespace scheduler;
 
@@ -23,6 +25,7 @@ void printResult(const SimulationResult& result) {
     std::cout << std::fixed << std::setprecision(2);
     std::cout << "  average waiting time:    " << result.averages.waitingTime << "\n";
     std::cout << "  average turnaround time: " << result.averages.turnaroundTime << "\n";
+    std::cout << "  average response time:   " << result.averages.responseTime << "\n";
 }
 
 }  // namespace
@@ -44,6 +47,8 @@ int main() {
 
     printResult(runSimulation(workload, policies::FcfsPolicy()));
     printResult(runSimulation(workload, policies::SjfPolicy()));
+    printResult(runSimulation(workload, policies::SrtfPolicy()));
+    printResult(runSimulation(workload, policies::RoundRobinPolicy(2)));
 
     return 0;
 }

@@ -16,6 +16,7 @@ struct ReadyProcess {
     const Process* process = nullptr;   // the original, unmodified input
     int remainingTime = 0;              // CPU time still needed
     int readySince = 0;                 // tick it last joined the ready queue
+    long long queueOrder = 0;           // strictly increasing; see below
     int firstRunTime = -1;              // tick it first got the CPU, -1 if never
     std::size_t index = 0;              // position in the original input list
 };
@@ -23,8 +24,13 @@ struct ReadyProcess {
 // The one thing that differs between scheduling algorithms: who runs next.
 //
 // TIE-BREAKING: when two processes look equally good, policies must prefer the
-// smaller `readySince`, and then the smaller `index`. That keeps every run
-// reproducible instead of depending on vector ordering.
+// smaller `queueOrder` - that is, whoever joined the ready queue first.
+//
+// `queueOrder` exists because `readySince` is only a tick number, and several
+// processes can join the queue during the same tick. The engine admits new
+// arrivals before it re-queues a preempted process, so ordering by
+// `queueOrder` gives the conventional behaviour: an arriving process queues
+// ahead of one whose time slice just ran out.
 class SchedulingPolicy {
 public:
     virtual ~SchedulingPolicy() = default;
