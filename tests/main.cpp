@@ -5,5 +5,6 @@ int main() {
     runCoreTests();
     runAlgorithmTests();
     runPriorityTests();
+    runCliTests();
     return testing::report();
 }

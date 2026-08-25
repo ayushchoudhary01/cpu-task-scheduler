@@ -30,9 +30,19 @@ add_library(scheduler_core
 target_include_directories(scheduler_core PUBLIC core)
 target_compile_options(scheduler_core PRIVATE ${WARNING_FLAGS})
 
+# Command line handling. A library rather than part of main.cpp, so the tests
+# can exercise argument and workload parsing directly.
+add_library(scheduler_cli
+    cli/WorkloadParser.cpp
+    cli/CommandLine.cpp
+)
+target_include_directories(scheduler_cli PUBLIC cli)
+target_link_libraries(scheduler_cli PUBLIC scheduler_core)
+target_compile_options(scheduler_cli PRIVATE ${WARNING_FLAGS})
+
 # The command line program.
 add_executable(scheduler cli/main.cpp)
-target_link_libraries(scheduler PRIVATE scheduler_core)
+target_link_libraries(scheduler PRIVATE scheduler_cli)
 target_compile_options(scheduler PRIVATE ${WARNING_FLAGS})
 
 # The tests.
@@ -42,8 +52,9 @@ add_executable(scheduler_tests
     tests/CoreTests.cpp
     tests/AlgorithmTests.cpp
     tests/PriorityTests.cpp
+    tests/CliTests.cpp
 )
-target_link_libraries(scheduler_tests PRIVATE scheduler_core)
+target_link_libraries(scheduler_tests PRIVATE scheduler_cli)
 target_include_directories(scheduler_tests PRIVATE tests)
 target_compile_options(scheduler_tests PRIVATE ${WARNING_FLAGS})
 add_test(NAME unit_tests COMMAND scheduler_tests)

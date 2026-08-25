@@ -1,0 +1,9 @@
+# One unimportant process against a stream of urgent ones.
+# Run with --algorithm Priority to see LOW starve,
+# then add --aging 1 to see it rescued.
+# ID   ARRIVAL  BURST  PRIORITY
+LOW    0        3      5
+H1     0        2      1
+H2     1        2      1
+H3     3        2      1
+H4     5        2      1

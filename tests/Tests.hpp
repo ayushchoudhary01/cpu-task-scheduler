@@ -5,3 +5,4 @@
 void runCoreTests();
 void runAlgorithmTests();
 void runPriorityTests();
+void runCliTests();
