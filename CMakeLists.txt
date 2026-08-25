@@ -10,6 +10,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_executable(scheduler cli/main.cpp)
 
+# Headers live in core/, so they can be included as "Process.hpp".
+target_include_directories(scheduler PRIVATE core)
+
 # Turn on helpful compiler warnings.
 if(MSVC)
     target_compile_options(scheduler PRIVATE /W4)
