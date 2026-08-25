@@ -1,0 +1,16 @@
+# Build output
+build/
+bin/
+*.exe
+*.o
+*.obj
+
+# Web (added later)
+node_modules/
+dist/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
