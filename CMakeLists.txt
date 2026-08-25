@@ -20,6 +20,8 @@ add_library(scheduler_core
     core/Timeline.cpp
     core/Metrics.cpp
     core/Engine.cpp
+    core/policies/FcfsPolicy.cpp
+    core/policies/SjfPolicy.cpp
 )
 target_include_directories(scheduler_core PUBLIC core)
 target_compile_options(scheduler_core PRIVATE ${WARNING_FLAGS})
@@ -31,7 +33,11 @@ target_compile_options(scheduler PRIVATE ${WARNING_FLAGS})
 
 # The tests.
 enable_testing()
-add_executable(scheduler_tests tests/main.cpp)
+add_executable(scheduler_tests
+    tests/main.cpp
+    tests/CoreTests.cpp
+    tests/AlgorithmTests.cpp
+)
 target_link_libraries(scheduler_tests PRIVATE scheduler_core)
 target_include_directories(scheduler_tests PRIVATE tests)
 target_compile_options(scheduler_tests PRIVATE ${WARNING_FLAGS})

@@ -1,42 +1,49 @@
+#include <iomanip>
 #include <iostream>
 #include <vector>
 
-#include "Metrics.hpp"
-#include "Process.hpp"
-#include "Timeline.hpp"
+#include "Engine.hpp"
+#include "policies/FcfsPolicy.hpp"
+#include "policies/SjfPolicy.hpp"
 
 using namespace scheduler;
 
-// Still a placeholder. It builds a timeline by hand to show the shape of the
-// output we are working towards - the engine will produce these for real.
+namespace {
+
+void printResult(const SimulationResult& result) {
+    std::cout << "\n" << result.algorithm << "\n";
+
+    std::cout << "  timeline: ";
+    for (const TimeSlice& slice : result.timeline.slices()) {
+        std::cout << "[" << (slice.kind == SliceKind::Idle ? "idle" : slice.processId)
+                  << " " << slice.start << "-" << slice.end << "] ";
+    }
+    std::cout << "\n";
+
+    std::cout << std::fixed << std::setprecision(2);
+    std::cout << "  average waiting time:    " << result.averages.waitingTime << "\n";
+    std::cout << "  average turnaround time: " << result.averages.turnaroundTime << "\n";
+}
+
+}  // namespace
+
+// Temporary demo: a fixed workload run through the algorithms built so far.
+// Real input handling arrives with the command line interface.
 int main() {
-    std::vector<Process> workload = {
-        {"P1", 0, 3, 2},
-        {"P2", 1, 2, 1},
+    const std::vector<Process> workload = {
+        {"P1", 0, 5, 0},
+        {"P2", 1, 3, 0},
+        {"P3", 2, 1, 0},
     };
 
-    Timeline timeline;
-    timeline.runProcess(0, "P1");
-    timeline.runProcess(1, "P1");
-    timeline.runProcess(2, "P1");
-    timeline.runProcess(3, "P2");
-    timeline.runProcess(4, "P2");
-
-    std::cout << "Timeline:\n";
-    for (const TimeSlice& slice : timeline.slices()) {
-        std::cout << "  [" << slice.start << ", " << slice.end << ")  "
-                  << (slice.kind == SliceKind::Idle ? "idle" : slice.processId) << "\n";
+    std::cout << "Workload:\n";
+    for (const Process& p : workload) {
+        std::cout << "  " << p.id << "  arrival=" << p.arrivalTime
+                  << "  burst=" << p.burstTime << "\n";
     }
 
-    std::vector<ProcessMetrics> metrics = {
-        makeMetrics(workload[0], 0, 3),
-        makeMetrics(workload[1], 3, 5),
-    };
-    Averages averages = computeAverages(metrics, timeline);
-
-    std::cout << "\nAverage waiting time:    " << averages.waitingTime << "\n";
-    std::cout << "Average turnaround time: " << averages.turnaroundTime << "\n";
-    std::cout << "CPU utilization:         " << averages.cpuUtilization << "%\n";
+    printResult(runSimulation(workload, policies::FcfsPolicy()));
+    printResult(runSimulation(workload, policies::SjfPolicy()));
 
     return 0;
 }
