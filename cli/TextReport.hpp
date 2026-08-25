@@ -23,6 +23,10 @@ std::string renderAverages(const scheduler::Averages& averages);
 // Everything above, with headings.
 std::string renderReport(const scheduler::SimulationResult& result);
 
+// The workload itself, in the same format the parser reads - so a generated
+// workload can be pasted straight into a file.
+std::string renderWorkload(const std::vector<scheduler::Process>& processes);
+
 // One row per algorithm, for comparing several runs of the same workload.
 std::string renderComparison(const std::vector<scheduler::SimulationResult>& results);
 

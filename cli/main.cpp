@@ -6,6 +6,7 @@
 #include "Engine.hpp"
 #include "JsonReport.hpp"
 #include "PolicyRegistry.hpp"
+#include "WorkloadGenerator.hpp"
 #include "TextReport.hpp"
 #include "WorkloadParser.hpp"
 
@@ -57,21 +58,30 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // Read the workload from a file if one was named, otherwise from stdin.
-    std::ifstream file;
-    if (!options.inputPath.empty()) {
-        file.open(options.inputPath);
-        if (!file) {
-            std::cerr << "Cannot open workload file: " << options.inputPath << "\n";
+    // Either make up a workload, or read one from a file or standard input.
+    std::vector<Process> processes;
+    if (options.generateCount > 0) {
+        WorkloadSpec spec;
+        spec.count = options.generateCount;
+        spec.seed = options.seed;
+        processes = generateWorkload(spec);
+    } else {
+        std::ifstream file;
+        if (!options.inputPath.empty()) {
+            file.open(options.inputPath);
+            if (!file) {
+                std::cerr << "Cannot open workload file: " << options.inputPath << "\n";
+                return 1;
+            }
+        }
+        std::istream& input = options.inputPath.empty() ? std::cin : file;
+
+        const cli::WorkloadParseResult workload = cli::parseWorkload(input);
+        if (!workload.ok()) {
+            printErrors("Problems in the workload:", workload.errors);
             return 1;
         }
-    }
-    std::istream& input = options.inputPath.empty() ? std::cin : file;
-
-    const cli::WorkloadParseResult workload = cli::parseWorkload(input);
-    if (!workload.ok()) {
-        printErrors("Problems in the workload:", workload.errors);
-        return 1;
+        processes = workload.processes;
     }
 
     PolicyOptions policyOptions;
@@ -82,17 +92,23 @@ int main(int argc, char** argv) {
     const std::vector<std::string> names =
         comparing ? options.compare : std::vector<std::string>{options.algorithm};
 
-    const std::vector<SimulationResult> results =
-        runAll(workload.processes, names, policyOptions);
+    const std::vector<SimulationResult> results = runAll(processes, names, policyOptions);
 
     if (options.format == cli::OutputFormat::Json) {
         std::cout << (comparing ? cli::renderJson(results) : cli::renderJson(results.front()));
         return 0;
     }
 
+    // A made-up workload is only useful if you can see it and run it again, so
+    // print it along with the seed that produced it.
+    if (options.generateCount > 0) {
+        std::cout << "Generated workload (seed " << options.seed << ")\n";
+        std::cout << cli::renderWorkload(processes) << "\n";
+    }
+
     if (comparing) {
         std::cout << "Comparison of " << results.size() << " algorithms on "
-                  << workload.processes.size() << " processes\n\n";
+                  << processes.size() << " processes\n\n";
         std::cout << cli::renderComparison(results);
     } else {
         std::cout << cli::renderReport(results.front());

@@ -26,6 +26,7 @@ add_library(scheduler_core
     core/policies/RoundRobinPolicy.cpp
     core/policies/PriorityPolicy.cpp
     core/PolicyRegistry.cpp
+    core/WorkloadGenerator.cpp
 )
 target_include_directories(scheduler_core PUBLIC core)
 target_compile_options(scheduler_core PRIVATE ${WARNING_FLAGS})
@@ -55,6 +56,7 @@ add_executable(scheduler_tests
     tests/AlgorithmTests.cpp
     tests/PriorityTests.cpp
     tests/CliTests.cpp
+    tests/RobustnessTests.cpp
 )
 target_link_libraries(scheduler_tests PRIVATE scheduler_cli)
 target_include_directories(scheduler_tests PRIVATE tests)

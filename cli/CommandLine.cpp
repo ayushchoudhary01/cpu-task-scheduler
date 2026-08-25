@@ -104,6 +104,23 @@ CommandLine parseCommandLine(const std::vector<std::string>& args) {
             } else if (parsed.agingRate < 0) {
                 parsed.errors.push_back("aging rate cannot be negative");
             }
+        } else if (arg == "--generate") {
+            if (!takeValue(args, i, value)) {
+                parsed.errors.push_back(arg + " needs a number of processes");
+            } else if (!parseInt(value, parsed.generateCount)) {
+                parsed.errors.push_back("process count '" + value + "' is not a whole number");
+            } else if (parsed.generateCount < 1) {
+                parsed.errors.push_back("--generate needs at least 1 process");
+            }
+        } else if (arg == "--seed") {
+            int seed = 0;
+            if (!takeValue(args, i, value)) {
+                parsed.errors.push_back(arg + " needs a number");
+            } else if (!parseInt(value, seed) || seed < 0) {
+                parsed.errors.push_back("seed '" + value + "' is not a positive whole number");
+            } else {
+                parsed.seed = static_cast<unsigned>(seed);
+            }
         } else if (arg == "-i" || arg == "--input") {
             if (!takeValue(args, i, parsed.inputPath)) {
                 parsed.errors.push_back(arg + " needs a file path");
@@ -131,6 +148,9 @@ std::string helpText() {
         "  -q, --quantum N       time slice for Round Robin (default: 2)\n"
         "  -g, --aging N         priority gained per N ticks waited (default: 0, off)\n"
         "  -i, --input FILE      workload file (default: standard input)\n"
+        "      --generate N      make up a workload of N processes instead\n"
+        "      --seed S          seed for --generate; the same seed always\n"
+        "                        produces the same workload\n"
         "  -l, --list            list the available algorithms\n"
         "  -h, --help            show this message\n"
         "\n"
@@ -140,7 +160,8 @@ std::string helpText() {
         "Examples:\n"
         "  scheduler --algorithm RR --quantum 3 --input examples/sample.txt\n"
         "  scheduler --compare all --input examples/sample.txt\n"
-        "  scheduler --compare FCFS,SJF --format json --input examples/sample.txt\n";
+        "  scheduler --compare FCFS,SJF --format json --input examples/sample.txt\n"
+        "  scheduler --generate 8 --seed 42 --compare all\n";
 }
 
 }  // namespace cli

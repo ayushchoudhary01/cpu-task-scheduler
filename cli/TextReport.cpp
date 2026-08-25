@@ -135,6 +135,30 @@ std::string renderReport(const SimulationResult& result) {
     return out.str();
 }
 
+std::string renderWorkload(const std::vector<Process>& processes) {
+    if (processes.empty()) {
+        return "";
+    }
+
+    std::size_t idWidth = std::string("# ID").size();
+    for (const Process& process : processes) {
+        idWidth = std::max(idWidth, process.id.size());
+    }
+
+    std::ostringstream out;
+    out << kIndent << std::left << std::setw(static_cast<int>(idWidth)) << "# ID"
+        << std::right << std::setw(10) << "ARRIVAL" << std::setw(8) << "BURST"
+        << std::setw(10) << "PRIORITY" << "\n";
+
+    for (const Process& process : processes) {
+        out << kIndent << std::left << std::setw(static_cast<int>(idWidth)) << process.id
+            << std::right << std::setw(10) << process.arrivalTime
+            << std::setw(8) << process.burstTime
+            << std::setw(10) << process.priority << "\n";
+    }
+    return out.str();
+}
+
 std::string renderComparison(const std::vector<SimulationResult>& results) {
     if (results.empty()) {
         return "";

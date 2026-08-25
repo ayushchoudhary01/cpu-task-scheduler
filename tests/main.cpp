@@ -6,5 +6,6 @@ int main() {
     runAlgorithmTests();
     runPriorityTests();
     runCliTests();
+    runRobustnessTests();
     return testing::report();
 }
