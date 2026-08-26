@@ -1,101 +1,177 @@
-import { useEffect, useState } from "react";
+import { AlertCircle, Cpu, Play } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import { health, simulate } from "./api";
-import type { SimulationResult } from "./types";
+import ProcessEditor, { DEFAULT_PROCESSES } from "./components/ProcessEditor";
+import ResultView from "./components/ResultView";
+import { buildColorMap } from "./theme";
+import type { Process, SimulationResult } from "./types";
 
-// A deliberately small workload, used to prove the browser can reach the API
-// and the API can reach the C++ program. The real interface arrives next.
-const SAMPLE = [
-  { id: "P1", arrivalTime: 0, burstTime: 5, priority: 3 },
-  { id: "P2", arrivalTime: 1, burstTime: 3, priority: 1 },
-  { id: "P3", arrivalTime: 2, burstTime: 1, priority: 2 },
-];
+const ALGORITHMS = ["FCFS", "SJF", "SRTF", "RR", "Priority"] as const;
+
+const DESCRIPTIONS: Record<string, string> = {
+  FCFS: "Runs in arrival order, each to completion. Simple, but one long job delays everyone behind it.",
+  SJF: "Runs the shortest waiting job first. Best average waiting time, but long jobs can starve.",
+  SRTF: "Like SJF, but a shorter arrival takes over immediately. Best waiting time of all, at the cost of switching.",
+  RR: "Everyone takes turns of a fixed length. Nobody starves and it feels responsive, but nothing finishes early.",
+  Priority: "Most important first. Aging raises the priority of anything left waiting, so nothing starves forever.",
+};
 
 export default function App() {
-  const [status, setStatus] = useState("checking...");
-  const [ready, setReady] = useState(false);
+  const [processes, setProcesses] = useState<Process[]>(DEFAULT_PROCESSES);
+  const [algorithm, setAlgorithm] = useState<string>("SRTF");
+  const [quantum, setQuantum] = useState(2);
+  const [agingRate, setAgingRate] = useState(0);
+
   const [result, setResult] = useState<SimulationResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [running, setRunning] = useState(false);
+  const [ready, setReady] = useState<boolean | null>(null);
+  const [readyMessage, setReadyMessage] = useState("");
+
+  // Colours follow the workload, not the run, so a process keeps its colour
+  // when you switch algorithms.
+  const colors = useMemo(
+    () => buildColorMap(processes.map((process) => process.id)),
+    [processes],
+  );
 
   useEffect(() => {
     health()
       .then((info) => {
-        setStatus(info.message);
         setReady(info.ready);
+        setReadyMessage(info.message);
       })
-      .catch(() => setStatus("cannot reach the API server"));
+      .catch(() => {
+        setReady(false);
+        setReadyMessage("Cannot reach the API server. Is it running?");
+      });
   }, []);
 
   const run = async () => {
-    setError(null);
+    setRunning(true);
+    setErrors([]);
     try {
-      setResult(await simulate({ processes: SAMPLE, algorithm: "SRTF" }));
+      setResult(await simulate({ processes, algorithm, quantum, agingRate }));
     } catch (problem) {
-      setError(problem instanceof Error ? problem.message : String(problem));
+      setErrors(problem instanceof Error ? problem.message.split("\n") : [String(problem)]);
       setResult(null);
+    } finally {
+      setRunning(false);
     }
   };
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
-      <h1 className="text-2xl font-semibold text-ink">CPU Scheduling Simulator</h1>
-      <p className="mt-2 text-sm text-ink-dim">
-        The scheduling itself is done by a C++ program. This page sends it a workload and
-        draws what comes back.
-      </p>
-
-      <div className="mt-8 rounded-lg border border-edge bg-surface-raised p-5">
-        <h2 className="text-sm font-medium tracking-wide text-ink-dim uppercase">
-          Connection
-        </h2>
-        <p className="mt-2 flex items-center gap-2 text-sm">
-          <span
-            className={`inline-block h-2 w-2 rounded-full ${
-              ready ? "bg-emerald-400" : "bg-amber-400"
-            }`}
-          />
-          {status}
-        </p>
-
-        <button
-          onClick={run}
-          disabled={!ready}
-          className="mt-4 rounded-md bg-accent px-4 py-2 text-sm font-medium text-slate-900 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Run a test simulation
-        </button>
-      </div>
-
-      {error && (
-        <pre className="mt-6 rounded-lg border border-red-900 bg-red-950/40 p-4 text-sm whitespace-pre-wrap text-red-200">
-          {error}
-        </pre>
-      )}
-
-      {result && (
-        <div className="mt-6 rounded-lg border border-edge bg-surface-raised p-5">
-          <h2 className="text-sm font-medium tracking-wide text-ink-dim uppercase">
-            {result.algorithm}
-          </h2>
-          <p className="mt-2 text-sm text-ink-dim">
-            finished at tick {result.totalTime}, average waiting time{" "}
-            {result.averages.waitingTime.toFixed(2)}
-          </p>
-          <div className="mt-4 flex overflow-hidden rounded border border-edge">
-            {result.timeline.map((slice, index) => (
-              <div
-                key={index}
-                className={`px-2 py-3 text-center text-xs font-mono ${
-                  slice.processId ? "bg-accent/20 text-ink" : "bg-surface text-ink-dim"
-                }`}
-                style={{ flexGrow: slice.end - slice.start }}
-              >
-                {slice.processId ?? "idle"}
-              </div>
-            ))}
+    <div className="min-h-screen">
+      <header className="border-b border-edge">
+        <div className="mx-auto flex max-w-5xl items-center gap-3 px-6 py-5">
+          <Cpu className="text-accent" size={22} />
+          <div>
+            <h1 className="text-lg font-semibold text-ink">CPU Scheduling Simulator</h1>
+            <p className="text-xs text-ink-dim">
+              Scheduling is done by a C++ program; this page sends it a workload and draws
+              the result.
+            </p>
           </div>
         </div>
-      )}
-    </main>
+      </header>
+
+      <main className="mx-auto max-w-5xl space-y-6 px-6 py-8">
+        {ready === false && (
+          <div className="flex items-start gap-3 rounded-lg border border-amber-800 bg-amber-950/40 p-4 text-sm text-amber-200">
+            <AlertCircle size={18} className="mt-0.5 shrink-0" />
+            <div>
+              <p className="font-medium">Not ready to run</p>
+              <p className="mt-1 text-amber-300/80">{readyMessage}</p>
+            </div>
+          </div>
+        )}
+
+        <section className="rounded-xl border border-edge bg-surface-raised p-5">
+          <h2 className="text-sm font-semibold tracking-wide text-ink-dim uppercase">
+            Algorithm
+          </h2>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {ALGORITHMS.map((name) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => setAlgorithm(name)}
+                className={`rounded-md border px-3 py-1.5 font-mono text-sm transition-colors ${
+                  algorithm === name
+                    ? "border-accent bg-accent/15 text-accent"
+                    : "border-edge text-ink-dim hover:border-slate-500 hover:text-ink"
+                }`}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+
+          <p className="mt-3 text-sm text-ink-dim">{DESCRIPTIONS[algorithm]}</p>
+
+          {/* Only show the knob that the chosen algorithm actually uses. */}
+          {algorithm === "RR" && (
+            <label className="mt-4 flex items-center gap-3 text-sm">
+              <span className="text-ink-dim">Time quantum</span>
+              <input
+                type="number"
+                min={1}
+                value={quantum}
+                onChange={(event) => setQuantum(Number(event.target.value) || 1)}
+                className="w-20 rounded border border-edge bg-surface px-2 py-1 font-mono text-ink focus:border-accent focus:outline-none"
+              />
+            </label>
+          )}
+
+          {algorithm === "Priority" && (
+            <label className="mt-4 flex items-center gap-3 text-sm">
+              <span className="text-ink-dim">Aging rate</span>
+              <input
+                type="number"
+                min={0}
+                value={agingRate}
+                onChange={(event) => setAgingRate(Number(event.target.value) || 0)}
+                className="w-20 rounded border border-edge bg-surface px-2 py-1 font-mono text-ink focus:border-accent focus:outline-none"
+              />
+              <span className="text-xs text-ink-dim">0 turns aging off</span>
+            </label>
+          )}
+        </section>
+
+        <ProcessEditor
+          processes={processes}
+          colors={colors}
+          onChange={setProcesses}
+          disabled={running}
+        />
+
+        <button
+          type="button"
+          onClick={run}
+          disabled={running || ready === false || processes.length === 0}
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-3 font-medium text-slate-900 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Play size={17} />
+          {running ? "Running..." : "Run simulation"}
+        </button>
+
+        {errors.length > 0 && (
+          <div className="rounded-lg border border-red-900 bg-red-950/40 p-4 text-sm text-red-200">
+            <p className="flex items-center gap-2 font-medium">
+              <AlertCircle size={16} /> That did not work
+            </p>
+            <ul className="mt-2 list-inside list-disc space-y-1 text-red-300/90">
+              {errors.map((message, index) => (
+                <li key={index}>{message}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {result && <ResultView result={result} colors={colors} />}
+      </main>
+    </div>
   );
 }

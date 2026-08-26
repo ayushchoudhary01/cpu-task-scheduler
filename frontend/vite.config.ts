@@ -9,8 +9,12 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
+    // Fail rather than quietly moving to another port. Drifting onto 5174
+    // would collide with the API server and leave requests hanging with no
+    // obvious cause.
+    strictPort: true,
     proxy: {
-      "/api": "http://localhost:5174",
+      "/api": "http://127.0.0.1:5174",
     },
   },
   build: {
