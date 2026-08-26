@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+/* A small palette so the Gantt chart and the rest of the interface agree on
+   colours. Tailwind v4 reads these straight out of @theme. */
+@theme {
+  --color-surface: #0f172a;
+  --color-surface-raised: #1e293b;
+  --color-edge: #334155;
+  --color-ink: #e2e8f0;
+  --color-ink-dim: #94a3b8;
+  --color-accent: #38bdf8;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+}

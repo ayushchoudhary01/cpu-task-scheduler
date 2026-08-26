@@ -6,7 +6,7 @@ bin/
 *.o
 *.obj
 
-# Web (added later)
+# Web
 node_modules/
 dist/
 
