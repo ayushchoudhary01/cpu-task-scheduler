@@ -4,6 +4,12 @@ You need a C++20 compiler and CMake. If `g++ --version` prints nothing, start at
 [installing a compiler](installing-a-compiler.md) - WinLibs includes CMake and
 Ninja as well.
 
+> [!NOTE]
+> **On Windows with Smart App Control enabled, these commands will not work** -
+> it blocks the compiler itself. Build in WSL instead; the web interface finds
+> the Linux binary on its own. See
+> [building under WSL](../troubleshooting/build-and-toolchain.md#building-under-wsl).
+
 ## The two commands
 
 ```bash

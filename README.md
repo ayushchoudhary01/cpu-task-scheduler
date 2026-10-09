@@ -97,6 +97,8 @@ cmake -S . -B build -G Ninja
 cmake --build build
 ```
 
+<sub>On Windows with Smart App Control on, build in WSL instead &mdash; [how](docs/troubleshooting/build-and-toolchain.md#building-under-wsl)</sub>
+
 </td></tr>
 <tr><td><h3 align="center">3️⃣</h3></td>
 <td>
