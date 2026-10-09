@@ -17,12 +17,18 @@ interface HoverInfo {
 // Blocks narrower than this get no label - there is nowhere to put it.
 const MIN_LABEL_WIDTH_PERCENT = 4;
 
+// Past this many blocks the staggered entry animation stops being a nice touch
+// and becomes the slowest thing on the page - a few thousand elements each
+// running their own transition. The chart still draws, just immediately.
+const MAX_ANIMATED_BLOCKS = 300;
+
 export default function GanttChart({ timeline, colors }: Props) {
   const [hover, setHover] = useState<HoverInfo | null>(null);
 
   if (timeline.length === 0) return null;
 
   const totalTime = timeline[timeline.length - 1].end;
+  const animate = timeline.length <= MAX_ANIMATED_BLOCKS;
 
   // Tick marks at every block boundary, plus the finish time.
   const boundaries = [...timeline.map((slice) => slice.start), totalTime];
@@ -39,9 +45,11 @@ export default function GanttChart({ timeline, colors }: Props) {
             <motion.button
               key={`${slice.start}-${slice.processId}`}
               type="button"
-              initial={{ opacity: 0, scaleX: 0.3 }}
+              initial={animate ? { opacity: 0, scaleX: 0.3 } : false}
               animate={{ opacity: 1, scaleX: 1 }}
-              transition={{ duration: 0.25, delay: index * 0.03, ease: "easeOut" }}
+              transition={
+                animate ? { duration: 0.25, delay: index * 0.03, ease: "easeOut" } : { duration: 0 }
+              }
               style={{ width: `${widthPercent}%`, backgroundColor: color, transformOrigin: "left" }}
               className={`relative flex min-w-[3px] items-center justify-center rounded-[4px] focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${
                 isIdle ? "opacity-60" : ""

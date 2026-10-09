@@ -143,6 +143,35 @@ program parses, so an id containing a space would silently become two fields.
 
 Rename the process rather than working around it.
 
+## "this workload is too large to chart"
+
+A deliberate limit, not a failure. The web interface accepts workloads totalling
+at most **20,000 ticks of CPU time** across all processes.
+
+The constraint is the size of the *result*, not the speed of the simulation. A
+Gantt chart has one block per uninterrupted run, so the total burst time bounds
+how many blocks there are - and at the worst case, Round Robin with a quantum of
+1, every tick becomes its own block:
+
+| Workload | Ticks | Time | JSON produced |
+|---|--:|--:|--:|
+| `examples/sample.txt` | 13 | 59 ms | 1 KB |
+| 20 x 1000 *(the limit)* | 20,000 | 154 ms | 1.2 MB |
+| 50 x 2000 | 100,000 | 297 ms | 5.6 MB |
+| 200 x 10000 | 2,000,000 | **9.0 s** | **119 MB** |
+
+That last row is two million blocks: too slow to produce, too large to send, and
+unreadable even if it arrived.
+
+Reduce the burst times, or use the command line, which has no such limit:
+
+```bash
+./build/bin/scheduler.exe -a RR -q 1 -i big-workload.txt
+```
+
+The quantum is the multiplier to watch - quantum 1 is the worst case, and
+anything larger roughly halves the block count or better.
+
 ## Everything is slow, or a request times out
 
 The server kills a simulation after 5 seconds and returns:
@@ -151,10 +180,11 @@ The server kills a simulation after 5 seconds and returns:
 {"errors":["the simulation took too long and was stopped"]}
 ```
 
-Normal workloads finish in microseconds, so a timeout means something is
-genuinely wrong - most likely a huge `arrivalTime`, since the simulation ticks
-through idle time one tick at a time. An arrival at tick 100,000 means 100,000
-iterations before anything runs.
+With the size limit above in place this should no longer be reachable through
+the UI. If you do see it, the likely cause is a very large `arrivalTime` - the
+simulation ticks through idle time one tick at a time, so an arrival at tick
+100,000 means 100,000 iterations before anything runs. There is a separate
+8 MB cap on output, reported as *"the scheduler produced too much output"*.
 
 ## Checking against the CLI
 

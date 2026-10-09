@@ -9,6 +9,19 @@ const MAX_PROCESSES = 200;
 const MAX_BURST = 10000;
 const MAX_ARRIVAL = 100000;
 
+// The per-process limits above are not enough on their own, because the cost of
+// a simulation is driven by the *total* work in it.
+//
+// A Gantt chart has one block per uninterrupted run, so the total burst time
+// bounds how many blocks there can be. At the worst case - Round Robin with a
+// quantum of 1 - every tick becomes its own block. 200 processes of 10000 ticks
+// each is two million blocks: nine seconds to produce, 119 MB to send, and a
+// chart no browser can draw and no human can read.
+//
+// So cap the total. Anything near this is already far past a readable chart;
+// the command line has no such limit for genuinely large runs.
+const MAX_TOTAL_WORK = 20000;
+
 export const KNOWN_ALGORITHMS = ["FCFS", "SJF", "SRTF", "RR", "Priority"] as const;
 
 function isKnownAlgorithm(name: string): boolean {
@@ -88,6 +101,20 @@ export function validateRequest(body: unknown): {
       priority,
     });
   });
+
+  // Checked on the whole workload rather than per process: twenty processes of
+  // 1000 ticks each cost exactly as much as one of 20000.
+  const totalWork = processes.reduce((sum, process) => sum + process.burstTime, 0);
+  if (totalWork > MAX_TOTAL_WORK) {
+    errors.push(
+      `this workload is too large to chart: ${processes.length} processes ` +
+        `needing ${totalWork} ticks of CPU time in total, and the limit is ` +
+        `${MAX_TOTAL_WORK}`,
+    );
+    errors.push(
+      "reduce the burst times, or run it from the command line, which has no limit",
+    );
+  }
 
   const algorithm = raw.algorithm === undefined ? "FCFS" : raw.algorithm;
   if (typeof algorithm !== "string" || !isKnownAlgorithm(algorithm)) {

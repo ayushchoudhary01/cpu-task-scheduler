@@ -15,8 +15,8 @@
 [![Tailwind](https://img.shields.io/badge/Tailwind-4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 
 [![Algorithms](https://img.shields.io/badge/algorithms-5-8b5cf6?style=flat-square)](docs/algorithms/README.md)
-[![Dependencies](https://img.shields.io/badge/C%2B%2B%20dependencies-0-orange?style=flat-square)](CMakeLists.txt)
-[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+<!-- [![Dependencies](https://img.shields.io/badge/C%2B%2B%20dependencies-0-orange?style=flat-square)](CMakeLists.txt) -->
+<!-- [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE) -->
 
 <br>
 
