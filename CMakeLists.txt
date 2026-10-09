@@ -43,8 +43,14 @@ add_library(scheduler_core
     core/policies/PriorityPolicy.cpp
     core/PolicyRegistry.cpp
     core/WorkloadGenerator.cpp
+    core/BatchRunner.cpp
 )
 target_include_directories(scheduler_core PUBLIC core)
+
+# Comparison mode runs each algorithm on its own thread, which needs the
+# platform's threading library (pthread on Linux, nothing extra on Windows).
+find_package(Threads REQUIRED)
+target_link_libraries(scheduler_core PUBLIC Threads::Threads)
 target_compile_options(scheduler_core PRIVATE ${WARNING_FLAGS})
 
 # Command line handling. A library rather than part of main.cpp, so the tests

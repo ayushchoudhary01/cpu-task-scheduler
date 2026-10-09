@@ -264,7 +264,7 @@ for the exact workload, plus a deliberately absurd policy that preempts on
 
 <div align="center">
 
-**`258/258 checks passed`**
+**`292/292 C++ checks`** &nbsp;·&nbsp; **`26/26 web checks`**
 
 </div>
 
@@ -276,7 +276,8 @@ for the exact workload, plus a deliberately absurd policy that preempts on
 |  | **Stub policies** | An `AlwaysPreempt` policy nothing sane would use, purely to stress the engine. |
 
 ```bash
-./build/bin/scheduler_tests.exe        # or: ctest --test-dir build
+./build/bin/scheduler_tests.exe        # 292 C++ checks
+cd frontend && npm test                # 26 web checks
 ```
 
 ---
@@ -401,9 +402,9 @@ Problems in the workload:
 
 ### Room to grow
 
-**Multilevel feedback queues** &nbsp;·&nbsp; **WebAssembly build**
+**Multilevel feedback queues** &nbsp;·&nbsp; **I/O bursts** &nbsp;·&nbsp; **WebAssembly build**
 
-*The architecture was built so MLFQ is one new class touching nothing else.*
+*Written up properly in [future improvements](docs/development/future-improvements.md).*
 
 <br>
 

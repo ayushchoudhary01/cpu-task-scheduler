@@ -1,7 +1,9 @@
 #include <iostream>
 
 #include "Check.hpp"
+#include "BatchRunner.hpp"
 #include "Engine.hpp"
+#include "PolicyRegistry.hpp"
 #include "Tests.hpp"
 #include "policies/FcfsPolicy.hpp"
 #include "policies/RoundRobinPolicy.hpp"
@@ -346,6 +348,94 @@ void testSwitchSlicesAreMarkedInTheTimeline() {
     check(switchSlices > 0, "switches are recorded");
     checkEqual(result.timeline.switchTime(), switchSlices, "one tick each at cost 1");
 }
+
+// ---------------------------------------------------------------------------
+// Running several algorithms at once
+// ---------------------------------------------------------------------------
+
+void testBatchMatchesRunningThemOneAtATime() {
+    std::cout << "Running algorithms on threads gives the same answers as one at a time\n";
+
+    const std::vector<std::string> names = availablePolicies();
+    const std::vector<SimulationResult> batch = runAlgorithms(kMixedWorkload, names);
+
+    checkEqual(batch.size(), names.size(), "one result per algorithm");
+
+    // The whole point of threading something is that it changes nothing about
+    // the answer, so compare against the sequential version of the same work.
+    bool allMatch = true;
+    for (std::size_t i = 0; i < names.size(); ++i) {
+        const SimulationResult single = runSimulation(kMixedWorkload, *makePolicy(names[i]));
+
+        allMatch = allMatch && batch[i].algorithm == single.algorithm &&
+                   batch[i].timeline.totalTime() == single.timeline.totalTime() &&
+                   batch[i].timeline.slices().size() == single.timeline.slices().size() &&
+                   batch[i].averages.waitingTime == single.averages.waitingTime &&
+                   batch[i].averages.responseTime == single.averages.responseTime;
+    }
+    check(allMatch, "every result identical to running it alone");
+}
+
+void testBatchKeepsTheRequestedOrder() {
+    std::cout << "Results come back in the order asked for, not the order finished\n";
+
+    // SRTF is listed first but does more work than FCFS, so without care the
+    // faster thread could land its result in the wrong slot.
+    const std::vector<std::string> names = {"SRTF", "FCFS", "RR"};
+    const std::vector<SimulationResult> results = runAlgorithms(kMixedWorkload, names);
+
+    checkEqual(results[0].algorithm, std::string("SRTF"), "first is SRTF");
+    checkEqual(results[1].algorithm, std::string("FCFS"), "second is FCFS");
+    checkEqual(results[2].algorithm, std::string("RR(q=2)"), "third is Round Robin");
+}
+
+void testBatchPassesOptionsThrough() {
+    std::cout << "Batch runs respect quantum, aging and switch cost\n";
+
+    PolicyOptions policyOptions;
+    policyOptions.quantum = 5;
+    policyOptions.agingRate = 3;
+
+    SimulationOptions simulationOptions;
+    simulationOptions.contextSwitchCost = 2;
+
+    const std::vector<SimulationResult> results =
+        runAlgorithms(kMixedWorkload, {"RR", "Priority"}, policyOptions, simulationOptions);
+
+    checkEqual(results[0].algorithm, std::string("RR(q=5)"), "quantum used");
+    checkEqual(results[1].algorithm, std::string("Priority(aging=3)"), "aging rate used");
+    check(results[0].timeline.switchTime() > 0, "switch cost applied");
+}
+
+void testBatchHandlesOneAndNone() {
+    std::cout << "Batch runs cope with one algorithm and with none\n";
+
+    checkEqual(runAlgorithms(kMixedWorkload, {}).size(), size_t{0}, "nothing asked for");
+
+    const std::vector<SimulationResult> single = runAlgorithms(kMixedWorkload, {"SJF"});
+    checkEqual(single.size(), size_t{1}, "one result");
+    checkEqual(single[0].algorithm, std::string("SJF"), "and it is the right one");
+}
+
+void testBatchIsRepeatable() {
+    std::cout << "Threaded runs give the same answer every time\n";
+
+    // Scheduling is deterministic, so running the same batch repeatedly must
+    // never vary. If the threads shared state, this is where it would show.
+    const std::vector<std::string> names = availablePolicies();
+    const std::vector<SimulationResult> first = runAlgorithms(kMixedWorkload, names);
+
+    bool stable = true;
+    for (int attempt = 0; attempt < 20; ++attempt) {
+        const std::vector<SimulationResult> again = runAlgorithms(kMixedWorkload, names);
+        for (std::size_t i = 0; i < names.size(); ++i) {
+            stable = stable && again[i].algorithm == first[i].algorithm &&
+                     again[i].timeline.totalTime() == first[i].timeline.totalTime() &&
+                     again[i].averages.waitingTime == first[i].averages.waitingTime;
+        }
+    }
+    check(stable, "twenty repeats, identical every time");
+}
 }  // namespace
 
 void runAlgorithmTests() {
@@ -370,4 +460,9 @@ void runAlgorithmTests() {
     testSwitchingLowersCpuUtilization();
     testSmallQuantumStopsBeingFree();
     testSwitchSlicesAreMarkedInTheTimeline();
+    testBatchMatchesRunningThemOneAtATime();
+    testBatchKeepsTheRequestedOrder();
+    testBatchPassesOptionsThrough();
+    testBatchHandlesOneAndNone();
+    testBatchIsRepeatable();
 }

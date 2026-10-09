@@ -12,6 +12,7 @@ cpu-task-scheduler/
 │   ├── Engine.{hpp,cpp}        the tick loop
 │   ├── PolicyRegistry.{hpp,cpp}  name -> policy
 │   ├── WorkloadGenerator.{hpp,cpp}  reproducible random workloads
+│   ├── BatchRunner.{hpp,cpp}   runs several algorithms, one thread each
 │   └── policies/
 │       ├── Select.hpp          the shared tie-break, implemented once
 │       ├── FcfsPolicy.{hpp,cpp}
@@ -38,9 +39,11 @@ cpu-task-scheduler/
 │   └── starvation.txt          demonstrates starvation and aging
 ├── frontend/
 │   ├── server/                 Express: validates, spawns, returns
-│   │   ├── index.ts            routes
+│   │   ├── app.ts              the routes; built but not started
+│   │   ├── index.ts            starts it listening
 │   │   ├── scheduler.ts        finds and runs the binary safely
 │   │   └── validate.ts         checks requests, collects every problem
+│   ├── tests/                  26 checks on Node's built-in test runner
 │   ├── src/
 │   │   ├── types.ts            the JSON contract, in TypeScript
 │   │   ├── api.ts              fetch wrappers
@@ -87,6 +90,7 @@ stderr.
 |--------|-------|
 | A new algorithm | `core/policies/`, plus the registry - see [adding an algorithm](adding-an-algorithm.md) |
 | A new metric | `core/Metrics.hpp`, then both renderers and `types.ts` |
+| A new API rule | `frontend/server/validate.ts`, plus a test in `frontend/tests/` |
 | A new CLI option | `cli/CommandLine.{hpp,cpp}`, then `main.cpp` |
 | Changing the terminal output | `cli/TextReport.cpp` |
 | Changing the JSON | `cli/JsonReport.cpp` **and** `frontend/src/types.ts` |

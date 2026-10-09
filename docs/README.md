@@ -37,6 +37,7 @@ Everything about this project that does not belong in the top-level README.
 | [Project structure](development/project-structure.md) | What lives where, and why. |
 | [Testing](development/testing.md) | The test harness and what is actually being checked. |
 | [Adding an algorithm](development/adding-an-algorithm.md) | Step by step, with a worked example. |
+| [Future improvements](development/future-improvements.md) | What was left out, and what it would take. |
 
 ## When something breaks
 
@@ -51,7 +52,8 @@ Everything about this project that does not belong in the top-level README.
 ```bash
 cmake -S . -B build -G Ninja      # configure, once
 cmake --build build               # compile
-./build/bin/scheduler_tests.exe   # run the tests
+./build/bin/scheduler_tests.exe   # run the C++ tests
+cd frontend && npm test           # run the web tests
 ./build/bin/scheduler.exe --help  # see the options
 cd frontend && npm run dev        # web interface on http://localhost:5173
 ```

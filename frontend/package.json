@@ -9,6 +9,7 @@
     "dev:ui": "vite",
     "build": "tsc --noEmit && vite build",
     "start": "tsx server/index.ts",
+    "test": "node --import tsx --test tests/validate.test.ts tests/api.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

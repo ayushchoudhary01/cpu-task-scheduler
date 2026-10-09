@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 
+#include "BatchRunner.hpp"
 #include "CommandLine.hpp"
 #include "Engine.hpp"
 #include "JsonReport.hpp"
@@ -19,20 +20,6 @@ void printErrors(const std::string& heading, const std::vector<std::string>& err
     for (const std::string& error : errors) {
         std::cerr << "  " << error << "\n";
     }
-}
-
-// Run one workload through every named algorithm.
-std::vector<SimulationResult> runAll(const std::vector<Process>& workload,
-                                     const std::vector<std::string>& names,
-                                     const PolicyOptions& options,
-                                     const SimulationOptions& simulation) {
-    std::vector<SimulationResult> results;
-    results.reserve(names.size());
-    for (const std::string& name : names) {
-        const auto policy = makePolicy(name, options);
-        results.push_back(runSimulation(workload, *policy, simulation));
-    }
-    return results;
 }
 
 }  // namespace
@@ -97,7 +84,7 @@ int main(int argc, char** argv) {
     simulationOptions.contextSwitchCost = options.switchCost;
 
     const std::vector<SimulationResult> results =
-        runAll(processes, names, policyOptions, simulationOptions);
+        runAlgorithms(processes, names, policyOptions, simulationOptions);
 
     if (options.format == cli::OutputFormat::Json) {
         std::cout << (comparing ? cli::renderJson(results) : cli::renderJson(results.front()));

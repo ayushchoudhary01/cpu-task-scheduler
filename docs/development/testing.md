@@ -135,16 +135,75 @@ test. The Gantt chart tests check **properties** instead:
 
 That catches real breakage while leaving formatting free to change.
 
-## What is not covered
+## The web layer
 
-- **The web layer has no automated tests.** It was checked by driving a real
-  browser and comparing every number against the CLI, but there is no test
-  suite. That is the biggest gap.
+A second suite, run from `frontend/`:
+
+```bash
+cd frontend && npm test
+```
+
+```
+tests 26
+pass 26
+fail 0
+```
+
+It uses **Node's built-in test runner** - `node:test` and `node:assert` - so it
+costs no new dependency. `tsx` is already present and loads the TypeScript.
+
+Two files, doing different jobs:
+
+- [`tests/validate.test.ts`](../../frontend/tests/validate.test.ts) - unit tests
+  for request validation and for turning a request into command line
+  arguments. No server, no child process.
+- [`tests/api.test.ts`](../../frontend/tests/api.test.ts) - **integration**
+  tests. They start the real server on a throwaway port (`listen(0)`, so they
+  never collide with a development server) and let it run the real C++ program.
+
+The integration tests assert the same hand-computed numbers the C++ tests use -
+`SRTF` averaging 2.50 waiting and 1.25 response on the sample workload. That is
+the point: if the browser and the terminal ever disagree, these fail.
+
+They **skip rather than fail** when the C++ has not been built, because a
+missing binary is a setup problem rather than a broken API.
+
+This required one change to the server: `createApp()` lives in
+[`server/app.ts`](../../frontend/server/app.ts) and `index.ts` only starts it.
+Previously importing the server started it listening, which made it untestable.
+
+## Checking the threading
+
+Comparison mode runs each algorithm on its own thread
+([`core/BatchRunner.cpp`](../../core/BatchRunner.cpp)) and takes no locks, on
+the grounds that the shared data is read-only and each thread writes to its own
+slot. That is a claim worth proving rather than asserting:
+
+```bash
+g++ -std=c++20 -g -O1 -fsanitize=thread -I core -I cli -I tests \
+    core/*.cpp core/policies/*.cpp cli/*.cpp tests/*.cpp -o tsan_tests -pthread
+./tsan_tests
+```
+
+ThreadSanitizer reports **no data races** across the whole suite. Run against a
+deliberately racy control program, the same build flags report two - so the
+detector is working, and the zero means something.
+
+There are also ordinary tests for it: results identical to running the
+algorithms one at a time, results in the requested order rather than the order
+they finished, and twenty repeats producing identical output.
+
+## What is still not covered
+
+- **No browser tests.** The React components are checked by hand. Component
+  tests would need a test renderer and a DOM, which is a real dependency.
 - **Performance is only sanity-checked** - a 500 process workload completes -
   not benchmarked.
 - **The JSON contract is not validated at the TypeScript boundary.** JSON is
   cast to an interface, so a mismatch between server and browser would compile
-  fine. See [the JSON contract](../architecture/json-contract.md#changing-the-shape).
+  fine. The integration tests catch it in practice by asserting on real
+  responses, but nothing checks the types themselves. See
+  [the JSON contract](../architecture/json-contract.md#changing-the-shape).
 
 ## Adding a test
 
