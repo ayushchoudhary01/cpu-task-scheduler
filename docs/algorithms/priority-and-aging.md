@@ -11,9 +11,9 @@ Run the most important thing first. Then deal with the consequence.
 5. Negative numbers are allowed and mean *very* important.
 
 This is written down in [`core/Process.hpp`](../../core/Process.hpp) because it
-is the sort of thing that quietly goes wrong. The project this one was modelled
-on contains the comment *"Assuming higher number = higher priority? Or lower?"*
-in its source, and then implements the opposite of what its own README claims.
+is the sort of thing that quietly goes wrong. A scheduler that leaves the
+convention implicit can end up documenting one order and implementing the other,
+and nothing catches it, because both produce plausible-looking schedules.
 
 ## How it works
 
@@ -57,8 +57,9 @@ Note what this does **not** do: it never writes to the process. The boost is
 needed. There is no `currentPriority` field to corrupt, no reset to forget, and
 the policy stays `const` like every other.
 
-The reference implementation mutates a `currentPriority` field on every process
-on every tick. Deriving the value instead removes that entire class of bug.
+The alternative - storing a `currentPriority` field and rewriting it every tick -
+has to be reset at exactly the right moments, and a missed reset silently
+corrupts every decision after it. Deriving the value removes that class of bug.
 
 One consequence worth knowing: because the boost is measured from
 `readySince` - the moment the process last joined the queue - a process that

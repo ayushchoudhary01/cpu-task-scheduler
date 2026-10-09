@@ -131,8 +131,8 @@ prerequisite for MLFQ being interesting rather than just correct.
 
 - **More algorithms for their own sake.** HRRN is a different scoring formula
   plugged into the same selection as SJF - it adds arithmetic, not a concept.
-- **A database.** A simulator has nothing to persist. The reference project this
-  one was modelled on ships PostgreSQL, Drizzle and Passport, and uses none of
-  them.
+- **A database.** A simulator has nothing to persist. Every run is derived
+  entirely from the workload you typed, so storage would add operational weight
+  and buy nothing.
 - **Accounts or sharing.** A URL carrying the workload would do the same job
   with none of the machinery.

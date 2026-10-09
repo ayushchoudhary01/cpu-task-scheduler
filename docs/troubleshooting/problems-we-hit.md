@@ -378,17 +378,17 @@ that can only agree with the implementation is not a test.
 
 ## Bugs avoided by design
 
-Problems present in the project this one was modelled on, designed out rather
-than fixed:
+Known failure modes for this kind of program, designed out rather than left to
+be fixed later:
 
-| Problem there | Prevented here by |
+| Failure mode | Prevented by |
 |---|---|
-| SRTF and priority scheduling hang forever, because a finished process is re-queued and its zero remaining time makes it look optimal | Retirement happens once, in the engine; a completed process cannot re-enter the ready queue whatever a policy does |
+| Preemptive algorithms hang forever, because a finished process is re-queued and its zero remaining time makes it look optimal | Retirement happens once, in the engine; a completed process cannot re-enter the ready queue whatever a policy does |
 | An unhandled `'error'` event from a spawned process crashes the server | `child.on("error")` handled; every failure resolves into a response |
 | JSON built by string concatenation with no escaping, so an id containing a quote corrupts the output | Proper escaping, with a test using ids containing `"` and `\` |
 | An unrecognised algorithm name silently falls back to FCFS | `makePolicy` returns `nullptr`; the caller reports the problem |
 | Process ids with spaces silently rewritten to underscores | Rejected, with an explanation |
-| Priority direction never decided - the source contains the comment *"Assuming higher number = higher priority? Or lower?"* and contradicts its own README | Documented in `Process.hpp` and tested |
+| The priority direction left implicit, so the docs and the code drift apart | Documented in `Process.hpp` and tested |
 
 See [the engine](../architecture/the-engine.md) and
 [SRTF](../algorithms/srtf.md#the-bug-this-algorithm-is-famous-for) for the

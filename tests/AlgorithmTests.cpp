@@ -146,10 +146,10 @@ void testSrtfPreemptsForAShorterJob() {
 void testSrtfTerminatesWhenAProcessFinishesEarly() {
     std::cout << "SRTF terminates when a short process finishes before a long one\n";
 
-    // This exact workload sends the reference project into an infinite loop:
-    // once P2 finishes, its zero remaining time makes it look like the best
-    // choice forever. Here a finished process is retired by the engine and
-    // cannot come back, so the run simply ends.
+    // This exact workload sends a naive SRTF into an infinite loop: once P2
+    // finishes, its zero remaining time makes it look like the best choice
+    // forever. Here a finished process is retired by the engine and cannot
+    // come back, so the run simply ends.
     const std::vector<Process> workload = {{"P1", 0, 5, 0}, {"P2", 1, 2, 0}};
     SimulationResult result = runSimulation(workload, SrtfPolicy());
 

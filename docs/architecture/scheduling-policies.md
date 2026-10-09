@@ -52,9 +52,10 @@ That is not a style preference. It is what makes the engine's invariants hold
 regardless of how badly a policy is written. The worst a broken policy can do is
 return a poor index.
 
-Compare with the reference implementation, where each algorithm is a branch
-inside the main loop, mutating the ready queue, the running process and the
-clock directly - which is how two of its eight algorithms end up hanging.
+Compare with the usual shape, where each algorithm is a branch inside the main
+loop, mutating the ready queue, the running process and the clock directly.
+Every branch is then free to break the loop's assumptions, and the preemptive
+ones usually do.
 
 ## What a policy sees
 
@@ -127,9 +128,9 @@ Name to policy, case-insensitive. `PolicyOptions` carries `quantum` and
 `agingRate`, and each policy takes what it needs and ignores the rest - so
 callers never need to know which algorithm wants which setting.
 
-An unknown name returns `nullptr`. It does **not** fall back to a default: the
-reference implementation silently returns FCFS for an unrecognised algorithm, so
-a typo gives you confidently wrong results with no warning.
+An unknown name returns `nullptr`. It does **not** fall back to a default.
+Silently returning FCFS for an unrecognised algorithm is the tempting shortcut,
+and it means a typo gives you confidently wrong results with no warning.
 
 `availablePolicies()` is what the CLI's `--list` and `--compare all` iterate, so
 adding an algorithm requires no changes to either.

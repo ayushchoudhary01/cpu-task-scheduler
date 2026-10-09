@@ -36,7 +36,8 @@ while (nextArrival < order.size() &&
 ```
 
 `<=`, not `==`. Using `==` works only if the loop visits every tick, and breaks
-silently the moment anything changes. The reference implementation uses `==`.
+silently the moment anything changes - a process whose arrival tick is skipped
+is never admitted at all.
 
 Processes are admitted in arrival order regardless of the order they appear in
 the input file - `arrivalOrder()` sorts indices with `stable_sort`, so equal
@@ -111,10 +112,10 @@ Look at the completion branch: `cpuBusy = false` and nothing is pushed back into
 being schedulable, whatever a policy does.
 
 This is the difference between fixing a bug and removing the possibility of one.
-The project this was modelled on re-queues the running process on every
-preemptive tick without checking whether it finished - so a completed process,
-with zero remaining time, looks like the best possible choice forever. The loop
-never terminates and the server hangs. See
+The common failure is to re-queue the running process on every preemptive tick
+without checking whether it finished - so a completed process, with zero
+remaining time, looks like the best possible choice forever. The loop never
+terminates and the server hangs. See
 [SRTF](../algorithms/srtf.md#the-bug-this-algorithm-is-famous-for).
 
 Here, a policy *cannot* cause that. The worst a broken policy can do is pick a

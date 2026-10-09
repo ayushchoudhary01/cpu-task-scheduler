@@ -83,8 +83,7 @@ each was the shortest thing present at that moment.
 
 ## The bug this algorithm is famous for
 
-SRTF is where naive implementations break, and the project this one was modelled
-on breaks exactly here.
+SRTF is where naive implementations break.
 
 The pattern: on each tick, put the running process back into the ready queue,
 then pick the minimum remaining time. If the running process **finished** on the
@@ -92,7 +91,7 @@ previous tick and is re-queued anyway, its remaining time is `0` - which is
 smaller than everything. It gets selected forever, its counter goes negative,
 the completion count never reaches the process count, and the loop never ends.
 
-Traced on the reference implementation with `P1(0,5)` and `P2(1,2)`:
+Traced with `P1(0,5)` and `P2(1,2)`:
 
 ```
 t=3 run P2 rem=0

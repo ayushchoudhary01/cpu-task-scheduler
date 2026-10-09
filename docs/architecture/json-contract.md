@@ -104,9 +104,10 @@ with `\uXXXX` for anything below `0x20`:
 id "a\"b"  ->  "a\\\"b"
 ```
 
-The reference implementation builds its JSON with raw `cout <<` concatenation
-and no escaping at all, so an id containing a quote corrupts its output
-silently. There is a test here for exactly that.
+Building JSON with raw `cout <<` concatenation and no escaping is the easy
+mistake here: an id containing a quote corrupts the output silently, and the
+browser sees a parse error rather than the real problem. There is a test for
+exactly that.
 
 ### Numbers are never in scientific notation
 

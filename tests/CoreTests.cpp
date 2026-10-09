@@ -129,8 +129,9 @@ void testEngineKeepsInputOrderInMetrics() {
 void testFinishedProcessIsNeverRescheduled() {
     std::cout << "A finished process is never scheduled again\n";
 
-    // This is the shape of bug that hangs the reference project: a completed
-    // process going back into the ready queue and being picked forever.
+    // This is the shape of bug that hangs naive preemptive schedulers: a
+    // completed process going back into the ready queue and being picked
+    // forever.
     std::vector<Process> workload = {{"P1", 0, 2, 0}, {"P2", 0, 2, 0}};
     SimulationResult result = runSimulation(workload, AlwaysPreempt());
 
