@@ -6,9 +6,16 @@ namespace scheduler {
 
 // What the CPU was doing during one stretch of time.
 enum class SliceKind {
-    Running,   // some process held the CPU
-    Idle       // nothing was ready to run
+    Running,         // some process held the CPU
+    Idle,            // nothing was ready to run
+    ContextSwitch    // changing from one process to another
 };
+
+// A context switch is time the CPU spends but gets no work out of: saving one
+// process's registers and loading another's. Real hardware pays this on every
+// switch, which is why operating systems use time slices of tens of
+// milliseconds rather than one. It is only simulated when asked for - see
+// SimulationOptions in Engine.hpp.
 
 // One block of the Gantt chart.
 //

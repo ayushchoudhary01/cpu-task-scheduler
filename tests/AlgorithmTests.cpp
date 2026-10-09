@@ -230,6 +230,122 @@ void testRoundRobinRespondsFasterThanFcfs() {
     check(rr.averages.responseTime < fcfs.averages.responseTime, "Round Robin is more responsive");
 }
 
+
+// ---------------------------------------------------------------------------
+// Context switching
+// ---------------------------------------------------------------------------
+
+void testSwitchingIsFreeByDefault() {
+    std::cout << "Context switching costs nothing unless asked for\n";
+
+    SimulationResult result = runSimulation(kMixedWorkload, SrtfPolicy());
+
+    checkEqual(result.timeline.switchTime(), 0, "no switch ticks");
+    checkEqual(result.timeline.totalTime(), 9, "same as before");
+    checkEqual(result.timeline.busyTime(), 9, "every tick is useful work");
+}
+
+void testSwitchingCostsTime() {
+    std::cout << "Each change of process costs the configured number of ticks\n";
+
+    // P1 runs, P2 takes over, P1 resumes: two changes of process.
+    const std::vector<Process> workload = {{"P1", 0, 4, 0}, {"P2", 1, 1, 0}};
+
+    SimulationOptions options;
+    options.contextSwitchCost = 2;
+    SimulationResult result = runSimulation(workload, SrtfPolicy(), options);
+
+    checkEqual(result.timeline.busyTime(), 5, "the work itself is unchanged");
+    checkEqual(result.timeline.switchTime(), 4, "two switches at 2 ticks each");
+    checkEqual(result.timeline.totalTime(), 9, "5 ticks of work plus 4 of overhead");
+}
+
+void testNoChargeForTheFirstProcess() {
+    std::cout << "Starting the first process is not charged as a switch\n";
+
+    const std::vector<Process> workload = {{"P1", 0, 3, 0}};
+
+    SimulationOptions options;
+    options.contextSwitchCost = 5;
+    SimulationResult result = runSimulation(workload, FcfsPolicy(), options);
+
+    checkEqual(result.timeline.switchTime(), 0, "nothing to switch away from");
+    checkEqual(result.timeline.totalTime(), 3, "runs straight through");
+}
+
+void testNoChargeForResumingTheSameProcess() {
+    std::cout << "Resuming the same process is not a switch\n";
+
+    // Round Robin with only one process: its quantum expires repeatedly, but
+    // there is nobody else to hand the CPU to.
+    const std::vector<Process> workload = {{"P1", 0, 6, 0}};
+
+    SimulationOptions options;
+    options.contextSwitchCost = 3;
+    SimulationResult result = runSimulation(workload, RoundRobinPolicy(2), options);
+
+    checkEqual(result.timeline.switchTime(), 0, "no switches at all");
+    checkEqual(result.timeline.totalTime(), 6, "no overhead");
+}
+
+void testSwitchingLowersCpuUtilization() {
+    std::cout << "Context switching shows up as lost CPU utilization\n";
+
+    SimulationOptions free;
+    SimulationOptions costly;
+    costly.contextSwitchCost = 1;
+
+    SimulationResult without = runSimulation(kMixedWorkload, RoundRobinPolicy(2), free);
+    SimulationResult with = runSimulation(kMixedWorkload, RoundRobinPolicy(2), costly);
+
+    checkEqual(without.averages.cpuUtilization, 100.0, "nothing is wasted when switching is free");
+    check(with.averages.cpuUtilization < 100.0, "switching wastes CPU time");
+    checkEqual(with.timeline.busyTime(), without.timeline.busyTime(), "same work done");
+    check(with.timeline.totalTime() > without.timeline.totalTime(), "but it takes longer");
+}
+
+void testSmallQuantumStopsBeingFree() {
+    std::cout << "With switching priced in, a tiny quantum becomes expensive\n";
+
+    // The point of the whole feature. While switching is free, a quantum of 1
+    // costs nothing and looks strictly better than a quantum of 4. Once it has
+    // a price, the smaller quantum is clearly worse.
+    SimulationOptions free;
+    SimulationOptions costly;
+    costly.contextSwitchCost = 2;
+
+    SimulationResult tinyFree = runSimulation(kMixedWorkload, RoundRobinPolicy(1), free);
+    SimulationResult bigFree = runSimulation(kMixedWorkload, RoundRobinPolicy(4), free);
+    checkEqual(tinyFree.timeline.totalTime(), bigFree.timeline.totalTime(),
+               "identical while switching is free");
+
+    SimulationResult tinyCostly = runSimulation(kMixedWorkload, RoundRobinPolicy(1), costly);
+    SimulationResult bigCostly = runSimulation(kMixedWorkload, RoundRobinPolicy(4), costly);
+    check(tinyCostly.timeline.totalTime() > bigCostly.timeline.totalTime(),
+          "once it has a price, the small quantum finishes later");
+    check(tinyCostly.averages.cpuUtilization < bigCostly.averages.cpuUtilization,
+          "and wastes more of the CPU");
+}
+
+void testSwitchSlicesAreMarkedInTheTimeline() {
+    std::cout << "Switch time appears in the timeline as its own kind of slice\n";
+
+    const std::vector<Process> workload = {{"P1", 0, 2, 0}, {"P2", 0, 2, 0}};
+
+    SimulationOptions options;
+    options.contextSwitchCost = 1;
+    SimulationResult result = runSimulation(workload, RoundRobinPolicy(1), options);
+
+    int switchSlices = 0;
+    for (const TimeSlice& slice : result.timeline.slices()) {
+        if (slice.kind == SliceKind::ContextSwitch) {
+            ++switchSlices;
+            checkEqual(slice.processId, std::string(""), "a switch belongs to no process");
+        }
+    }
+    check(switchSlices > 0, "switches are recorded");
+    checkEqual(result.timeline.switchTime(), switchSlices, "one tick each at cost 1");
+}
 }  // namespace
 
 void runAlgorithmTests() {
@@ -247,4 +363,11 @@ void runAlgorithmTests() {
     testRoundRobinQueuesArrivalsAheadOfPreemptedProcess();
     testRoundRobinWithLargeQuantumBehavesLikeFcfs();
     testRoundRobinRespondsFasterThanFcfs();
+    testSwitchingIsFreeByDefault();
+    testSwitchingCostsTime();
+    testNoChargeForTheFirstProcess();
+    testNoChargeForResumingTheSameProcess();
+    testSwitchingLowersCpuUtilization();
+    testSmallQuantumStopsBeingFree();
+    testSwitchSlicesAreMarkedInTheTimeline();
 }

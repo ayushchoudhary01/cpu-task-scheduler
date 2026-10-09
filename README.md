@@ -365,6 +365,7 @@ scheduler [options]
 | `-f`, `--format FORMAT` | `text` or `json` |
 | `-q`, `--quantum N` | Round Robin time slice |
 | `-g`, `--aging N` | one priority step per N ticks waited |
+| `-s`, `--switch-cost N` | ticks lost on each context switch |
 | `-i`, `--input FILE` | workload file *(default: stdin)* |
 | `--generate N` `--seed S` | make up a reproducible workload |
 | `-l`, `--list` &nbsp; `-h`, `--help` | list algorithms · show usage |
@@ -400,7 +401,7 @@ Problems in the workload:
 
 ### Room to grow
 
-**Multilevel feedback queues** &nbsp;·&nbsp; **configurable context-switch cost** &nbsp;·&nbsp; **WebAssembly build**
+**Multilevel feedback queues** &nbsp;·&nbsp; **WebAssembly build**
 
 *The architecture was built so MLFQ is one new class touching nothing else.*
 

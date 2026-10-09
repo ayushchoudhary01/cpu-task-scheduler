@@ -10,10 +10,19 @@ namespace {
 using namespace scheduler;
 
 const std::string kIdleLabel = "idle";
+const std::string kSwitchLabel = "cs";
 const std::string kIndent = "  ";
 
 std::string labelFor(const TimeSlice& slice) {
-    return slice.kind == SliceKind::Idle ? kIdleLabel : slice.processId;
+    switch (slice.kind) {
+        case SliceKind::Idle:
+            return kIdleLabel;
+        case SliceKind::ContextSwitch:
+            return kSwitchLabel;
+        case SliceKind::Running:
+            break;
+    }
+    return slice.processId;
 }
 
 // Put `text` in the middle of a field `width` characters wide.

@@ -44,6 +44,14 @@ export default function ResultView({ result, colors }: Props) {
         <StatTile label="CPU used" value={averages.cpuUtilization.toFixed(1)} unit="%" />
       </div>
 
+      {result.switchTime > 0 && (
+        <p className="rounded-lg border border-edge bg-surface-raised px-4 py-3 text-sm text-ink-dim">
+          <span className="font-mono text-ink">{result.switchTime}</span> of{" "}
+          <span className="font-mono text-ink">{result.totalTime}</span> ticks went on context
+          switching - the CPU was busy changing process rather than doing work.
+        </p>
+      )}
+
       {/* The same numbers as a table. The chart above is the quick read; this is
           what you check when the chart tells you something surprising. */}
       <div className="overflow-x-auto rounded-xl border border-edge bg-surface-raised p-5">

@@ -37,6 +37,7 @@ export default function CompareView({
   const [selected, setSelected] = useState<string[]>(["FCFS", "SJF", "SRTF", "RR"]);
   const [quantum, setQuantum] = useState(2);
   const [agingRate, setAgingRate] = useState(0);
+  const [switchCost, setSwitchCost] = useState(0);
 
   const [results, setResults] = useState<SimulationResult[] | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -52,7 +53,9 @@ export default function CompareView({
     setRunning(true);
     setErrors([]);
     try {
-      setResults(await compare({ processes, compare: selected, quantum, agingRate }));
+      setResults(
+        await compare({ processes, compare: selected, quantum, agingRate, switchCost }),
+      );
     } catch (problem) {
       setErrors(problem instanceof Error ? problem.message.split("\n") : [String(problem)]);
       setResults(null);
@@ -115,6 +118,16 @@ export default function CompareView({
               />
             </label>
           )}
+          <label className="flex items-center gap-3 text-sm">
+            <span className="text-ink-dim">Context switch cost</span>
+            <input
+              type="number"
+              min={0}
+              value={switchCost}
+              onChange={(event) => setSwitchCost(Number(event.target.value) || 0)}
+              className="w-20 rounded border border-edge bg-surface px-2 py-1 font-mono text-ink focus:border-accent focus:outline-none"
+            />
+          </label>
         </div>
       </section>
 

@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 
-import { IDLE_COLOR } from "../theme";
+import { IDLE_COLOR, SWITCH_COLOR } from "../theme";
 import type { TimeSlice } from "../types";
 
 interface Props {
@@ -38,22 +38,37 @@ export default function GanttChart({ timeline, colors }: Props) {
       <div className="flex h-16 w-full gap-[2px]">
         {timeline.map((slice, index) => {
           const widthPercent = ((slice.end - slice.start) / totalTime) * 100;
-          const isIdle = slice.processId === null;
-          const color = isIdle ? IDLE_COLOR : (colors.get(slice.processId!) ?? IDLE_COLOR);
+          const isRunning = slice.kind === "running";
+          const isSwitch = slice.kind === "switch";
+          const color = isRunning
+            ? (colors.get(slice.processId!) ?? IDLE_COLOR)
+            : IDLE_COLOR;
+
+          // Context switches are overhead, not work, so they are drawn as
+          // hatching rather than given a colour of their own - no process owns
+          // them, and they should not read as another series.
+          const background = isSwitch
+            ? `repeating-linear-gradient(45deg, ${SWITCH_COLOR} 0 3px, transparent 3px 6px)`
+            : undefined;
 
           return (
             <motion.button
-              key={`${slice.start}-${slice.processId}`}
+              key={`${slice.start}-${slice.kind}-${slice.processId}`}
               type="button"
               initial={animate ? { opacity: 0, scaleX: 0.3 } : false}
               animate={{ opacity: 1, scaleX: 1 }}
               transition={
                 animate ? { duration: 0.25, delay: index * 0.03, ease: "easeOut" } : { duration: 0 }
               }
-              style={{ width: `${widthPercent}%`, backgroundColor: color, transformOrigin: "left" }}
+              style={{
+                width: `${widthPercent}%`,
+                backgroundColor: isSwitch ? "transparent" : color,
+                backgroundImage: background,
+                transformOrigin: "left",
+              }}
               className={`relative flex min-w-[3px] items-center justify-center rounded-[4px] focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${
-                isIdle ? "opacity-60" : ""
-              }`}
+                isRunning ? "" : "opacity-70"
+              } ${isSwitch ? "border border-slate-600" : ""}`}
               onMouseEnter={(event) =>
                 setHover({ slice, x: event.currentTarget.offsetLeft + event.currentTarget.offsetWidth / 2 })
               }
@@ -66,10 +81,10 @@ export default function GanttChart({ timeline, colors }: Props) {
               {widthPercent >= MIN_LABEL_WIDTH_PERCENT && (
                 <span
                   className={`font-mono text-xs font-medium ${
-                    isIdle ? "text-slate-300" : "text-white"
+                    isRunning ? "text-white" : "text-slate-300"
                   }`}
                 >
-                  {slice.processId ?? "idle"}
+                  {isRunning ? slice.processId : isSwitch ? "cs" : "idle"}
                 </span>
               )}
             </motion.button>
@@ -102,7 +117,13 @@ export default function GanttChart({ timeline, colors }: Props) {
           className="pointer-events-none absolute -top-16 z-10 rounded-md border border-edge bg-surface px-3 py-2 text-xs shadow-lg"
           style={{ left: hover.x, transform: "translateX(-50%)" }}
         >
-          <div className="font-medium text-ink">{hover.slice.processId ?? "CPU idle"}</div>
+          <div className="font-medium text-ink">
+            {hover.slice.kind === "running"
+              ? hover.slice.processId
+              : hover.slice.kind === "switch"
+                ? "Context switch"
+                : "CPU idle"}
+          </div>
           <div className="mt-0.5 font-mono text-ink-dim">
             {hover.slice.start} to {hover.slice.end} ({hover.slice.end - hover.slice.start}{" "}
             {hover.slice.end - hover.slice.start === 1 ? "tick" : "ticks"})

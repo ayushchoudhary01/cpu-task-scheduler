@@ -20,13 +20,21 @@ public:
     // Record that nothing ran during the single tick starting at `tick`.
     void runIdle(int tick);
 
+    // Record that the single tick starting at `tick` was spent switching from
+    // one process to another, doing no useful work.
+    void runContextSwitch(int tick);
+
     const std::vector<TimeSlice>& slices() const { return slices_; }
 
     // Tick at which the simulation finished (0 if nothing was recorded).
     int totalTime() const;
 
     // Number of ticks the CPU was actually running something.
+    // Context switches do not count - that is the point of measuring them.
     int busyTime() const;
+
+    // Number of ticks lost to context switching.
+    int switchTime() const;
 
 private:
     void append(int tick, SliceKind kind, const std::string& processId);

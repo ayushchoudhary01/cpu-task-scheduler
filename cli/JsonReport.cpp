@@ -42,6 +42,20 @@ std::string number(double value) {
     return out.str();
 }
 
+// "running", "idle" or "switch". A reader cannot infer this from processId
+// alone any more, since both idle and switching have no process.
+std::string kindName(SliceKind kind) {
+    switch (kind) {
+        case SliceKind::Idle:
+            return "idle";
+        case SliceKind::ContextSwitch:
+            return "switch";
+        case SliceKind::Running:
+            break;
+    }
+    return "running";
+}
+
 std::string timelineJson(const Timeline& timeline) {
     std::ostringstream out;
     out << "[";
@@ -51,8 +65,9 @@ std::string timelineJson(const Timeline& timeline) {
         out << (i == 0 ? "" : ",") << "\n      {"
             << "\"start\": " << slice.start
             << ", \"end\": " << slice.end
+            << ", \"kind\": " << quoted(kindName(slice.kind))
             << ", \"processId\": "
-            << (slice.kind == SliceKind::Idle ? "null" : quoted(slice.processId))
+            << (slice.kind == SliceKind::Running ? quoted(slice.processId) : "null")
             << "}";
     }
     out << (slices.empty() ? "" : "\n    ") << "]";
@@ -96,6 +111,7 @@ std::string resultBody(const SimulationResult& result) {
     out << "    \"algorithm\": " << quoted(result.algorithm) << ",\n"
         << "    \"totalTime\": " << result.timeline.totalTime() << ",\n"
         << "    \"busyTime\": " << result.timeline.busyTime() << ",\n"
+        << "    \"switchTime\": " << result.timeline.switchTime() << ",\n"
         << "    \"timeline\": " << timelineJson(result.timeline) << ",\n"
         << "    \"processes\": " << metricsJson(result.metrics) << ",\n"
         << "    \"averages\": " << averagesJson(result.averages) << "\n";

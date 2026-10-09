@@ -88,10 +88,40 @@ process is ever re-queued, so Round Robin *is* FCFS.
 `testRoundRobinWithLargeQuantumBehavesLikeFcfs` asserts the two produce the same
 slices and the same averages.
 
-In a real operating system there is a cost per switch - saving registers,
-flushing pipelines, cache effects - so a tiny quantum wastes real time on
-overhead. This simulator treats switching as free, which is the standard
-simplification; adding a configurable switch cost would be a natural extension.
+## Why a tiny quantum is not free
+
+By default this simulator treats switching as free, which is the standard
+textbook simplification - and it hides the most important thing about the
+quantum. With no cost, every quantum finishes at the same tick, so a quantum of
+1 looks strictly best:
+
+```bash
+scheduler -a RR -q 1 -i examples/sample.txt    # finishes at 13, CPU 100%
+scheduler -a RR -q 4 -i examples/sample.txt    # finishes at 13, CPU 100%
+```
+
+Real hardware pays for every switch: registers saved and restored, pipelines
+flushed, caches gone cold. `--switch-cost N` charges N ticks of overhead each
+time the CPU is handed to a *different* process, and the picture inverts:
+
+| Quantum | Finishes at | CPU doing real work |
+|--------:|------------:|--------------------:|
+| 1 | 37 | **35%** |
+| 2 | 27 | 48% |
+| 4 | 21 | **62%** |
+
+```bash
+scheduler -a RR -q 1 -s 2 -i examples/sample.txt
+```
+
+At a quantum of 1 the machine spends almost two thirds of its time shuffling
+processes instead of running them. **This is why real operating systems use
+quanta of tens of milliseconds rather than one** - the quantum is a trade
+between responsiveness and overhead, and with free switching there is no trade
+at all.
+
+Nothing is charged for starting the first process, or for resuming the process
+that was already running; only an actual change of process costs anything.
 
 ## Properties
 

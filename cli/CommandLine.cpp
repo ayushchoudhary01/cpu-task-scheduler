@@ -104,6 +104,14 @@ CommandLine parseCommandLine(const std::vector<std::string>& args) {
             } else if (parsed.agingRate < 0) {
                 parsed.errors.push_back("aging rate cannot be negative");
             }
+        } else if (arg == "-s" || arg == "--switch-cost") {
+            if (!takeValue(args, i, value)) {
+                parsed.errors.push_back(arg + " needs a number");
+            } else if (!parseInt(value, parsed.switchCost)) {
+                parsed.errors.push_back("switch cost '" + value + "' is not a whole number");
+            } else if (parsed.switchCost < 0) {
+                parsed.errors.push_back("switch cost cannot be negative");
+            }
         } else if (arg == "--generate") {
             if (!takeValue(args, i, value)) {
                 parsed.errors.push_back(arg + " needs a number of processes");
@@ -147,6 +155,7 @@ std::string helpText() {
         "  -f, --format FORMAT   text or json (default: text)\n"
         "  -q, --quantum N       time slice for Round Robin (default: 2)\n"
         "  -g, --aging N         priority gained per N ticks waited (default: 0, off)\n"
+        "  -s, --switch-cost N   ticks lost on each context switch (default: 0, free)\n"
         "  -i, --input FILE      workload file (default: standard input)\n"
         "      --generate N      make up a workload of N processes instead\n"
         "      --seed S          seed for --generate; the same seed always\n"

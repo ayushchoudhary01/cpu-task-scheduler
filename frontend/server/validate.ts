@@ -150,6 +150,13 @@ export function validateRequest(body: unknown): {
     errors.push("aging rate must be a whole number from 0 to 1000");
   }
 
+  // Overhead stretches the run, so it counts against the same size budget as
+  // the work itself - a big switch cost can multiply the number of blocks.
+  const switchCost = raw.switchCost === undefined ? 0 : raw.switchCost;
+  if (!isWholeNumber(switchCost) || switchCost < 0 || switchCost > 100) {
+    errors.push("context switch cost must be a whole number from 0 to 100");
+  }
+
   if (errors.length > 0) {
     return { request: null, errors };
   }
@@ -160,6 +167,7 @@ export function validateRequest(body: unknown): {
       algorithm: algorithm as string,
       quantum: quantum as number,
       agingRate: agingRate as number,
+      switchCost: switchCost as number,
       compare,
     },
     errors: [],

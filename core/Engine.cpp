@@ -21,7 +21,8 @@ std::vector<std::size_t> arrivalOrder(const std::vector<Process>& processes) {
 }  // namespace
 
 SimulationResult runSimulation(const std::vector<Process>& processes,
-                               const SchedulingPolicy& policy) {
+                               const SchedulingPolicy& policy,
+                               const SimulationOptions& options) {
     SimulationResult result;
     result.algorithm = policy.name();
     result.metrics.resize(processes.size());
@@ -42,6 +43,13 @@ SimulationResult runSimulation(const std::vector<Process>& processes,
     std::size_t nextArrival = 0;
     std::size_t completed = 0;
 
+    // Context switching. `switchTicksLeft` counts down the overhead owed before
+    // the chosen process may actually start, and `lastRunId` is whoever held
+    // the CPU most recently - switching back to the same process costs nothing.
+    const int switchCost = std::max(0, options.contextSwitchCost);
+    int switchTicksLeft = 0;
+    std::string lastRunId;
+
     while (completed < processes.size()) {
         // 1. Admit everything that has arrived by now.
         while (nextArrival < order.size() &&
@@ -53,7 +61,11 @@ SimulationResult runSimulation(const std::vector<Process>& processes,
         }
 
         // 2. Does the running process have to give up the CPU?
-        if (cpuBusy) {
+        //
+        // Skipped while a context switch is in progress: once the CPU has
+        // started changing hands, letting the scheduler change its mind would
+        // mean paying the cost and getting nothing for it.
+        if (cpuBusy && switchTicksLeft == 0) {
             const bool sliceUsedUp =
                 policy.timeSlice() > 0 && ticksOnCpu >= policy.timeSlice();
 
@@ -72,19 +84,33 @@ SimulationResult runSimulation(const std::vector<Process>& processes,
         }
 
         // 3. Hand the CPU to whoever the policy picks.
-        if (!cpuBusy && !ready.empty()) {
+        if (!cpuBusy && switchTicksLeft == 0 && !ready.empty()) {
             const std::size_t chosen = policy.choose(ready, currentTime);
             running = ready[chosen];
             ready.erase(ready.begin() + static_cast<std::ptrdiff_t>(chosen));
             cpuBusy = true;
             ticksOnCpu = 0;
-            if (running.firstRunTime < 0) {
-                running.firstRunTime = currentTime;
+
+            // Taking the CPU from a different process costs time. Nothing is
+            // owed for the very first dispatch, or for resuming whoever was
+            // already running.
+            if (switchCost > 0 && !lastRunId.empty() && lastRunId != running.process->id) {
+                switchTicksLeft = switchCost;
             }
         }
 
         // 4. Run for exactly one tick.
-        if (cpuBusy) {
+        if (switchTicksLeft > 0) {
+            // The CPU is busy changing hands and gets no work done.
+            result.timeline.runContextSwitch(currentTime);
+            switchTicksLeft -= 1;
+        } else if (cpuBusy) {
+            // Response time is measured from when a process actually runs, so
+            // it includes any switch overhead paid to get it started.
+            if (running.firstRunTime < 0) {
+                running.firstRunTime = currentTime;
+            }
+            lastRunId = running.process->id;
             result.timeline.runProcess(currentTime, running.process->id);
             running.remainingTime -= 1;
             ticksOnCpu += 1;

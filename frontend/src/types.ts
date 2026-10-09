@@ -8,10 +8,16 @@ export interface Process {
   priority: number;
 }
 
+// "running" - a process held the CPU
+// "idle"    - nothing was ready to run
+// "switch"  - the CPU was changing from one process to another, doing no work
+export type SliceKind = "running" | "idle" | "switch";
+
 export interface TimeSlice {
   start: number;
   end: number;
-  processId: string | null; // null while the CPU is idle
+  kind: SliceKind;
+  processId: string | null; // set only when kind is "running"
 }
 
 export interface ProcessMetrics {
@@ -36,6 +42,7 @@ export interface SimulationResult {
   algorithm: string;
   totalTime: number;
   busyTime: number;
+  switchTime: number;
   timeline: TimeSlice[];
   processes: ProcessMetrics[];
   averages: Averages;
@@ -46,6 +53,7 @@ export interface SimulationRequest {
   algorithm?: string;
   quantum?: number;
   agingRate?: number;
+  switchCost?: number;
   compare?: string[];
 }
 

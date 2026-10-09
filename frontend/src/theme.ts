@@ -24,6 +24,11 @@ const OVERFLOW_COLOR = "#64748b";
 
 export const IDLE_COLOR = "#334155";
 
+// Context switches are overhead rather than a series, so they get a neutral
+// drawn as hatching - distinct from both processes and idle time without
+// competing with the categorical palette above.
+export const SWITCH_COLOR = "#64748b";
+
 // Map each process id to a colour, fixed by its position in the workload.
 //
 // Keying on the process rather than on the order it happens to run matters:

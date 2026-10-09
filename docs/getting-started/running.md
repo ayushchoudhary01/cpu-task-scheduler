@@ -45,6 +45,7 @@ chart is readable at a glance rather than decorative.
 | `-f`, `--format FORMAT` | `text` or `json` (default `text`) |
 | `-q`, `--quantum N` | time slice for Round Robin (default `2`) |
 | `-g`, `--aging N` | one step of priority per N ticks waited (default `0`, off) |
+| `-s`, `--switch-cost N` | ticks lost each time the CPU changes process (default `0`, free) |
 | `-i`, `--input FILE` | workload file (default: standard input) |
 | `--generate N` | make up a workload of N processes instead of reading one |
 | `--seed S` | seed for `--generate`; the same seed always gives the same workload |

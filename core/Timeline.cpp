@@ -10,6 +10,10 @@ void Timeline::runIdle(int tick) {
     append(tick, SliceKind::Idle, "");
 }
 
+void Timeline::runContextSwitch(int tick) {
+    append(tick, SliceKind::ContextSwitch, "");
+}
+
 void Timeline::append(int tick, SliceKind kind, const std::string& processId) {
     // If this tick continues what the previous slice was doing, just stretch
     // that slice instead of adding a new one.
@@ -35,6 +39,16 @@ int Timeline::busyTime() const {
         }
     }
     return busy;
+}
+
+int Timeline::switchTime() const {
+    int switching = 0;
+    for (const TimeSlice& slice : slices_) {
+        if (slice.kind == SliceKind::ContextSwitch) {
+            switching += slice.duration();
+        }
+    }
+    return switching;
 }
 
 }  // namespace scheduler

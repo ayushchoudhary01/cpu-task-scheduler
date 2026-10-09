@@ -26,6 +26,7 @@ export default function SimulatorView({
   const [algorithm, setAlgorithm] = useState<string>("SRTF");
   const [quantum, setQuantum] = useState(2);
   const [agingRate, setAgingRate] = useState(0);
+  const [switchCost, setSwitchCost] = useState(0);
 
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -35,7 +36,7 @@ export default function SimulatorView({
     setRunning(true);
     setErrors([]);
     try {
-      setResult(await simulate({ processes, algorithm, quantum, agingRate }));
+      setResult(await simulate({ processes, algorithm, quantum, agingRate, switchCost }));
     } catch (problem) {
       setErrors(problem instanceof Error ? problem.message.split("\n") : [String(problem)]);
       setResult(null);
@@ -105,6 +106,22 @@ export default function SimulatorView({
             <span className="text-xs text-ink-dim">0 turns aging off</span>
           </label>
         )}
+
+        {/* Applies to every algorithm, so it sits outside the per-algorithm
+            controls above. */}
+        <label className="mt-4 flex items-center gap-3 text-sm">
+          <span className="text-ink-dim">Context switch cost</span>
+          <input
+            type="number"
+            min={0}
+            value={switchCost}
+            onChange={(event) => setSwitchCost(Number(event.target.value) || 0)}
+            className="w-20 rounded border border-edge bg-surface px-2 py-1 font-mono text-ink focus:border-accent focus:outline-none"
+          />
+          <span className="text-xs text-ink-dim">
+            ticks lost each time the CPU changes process; 0 treats it as free
+          </span>
+        </label>
       </section>
 
       <ProcessEditor

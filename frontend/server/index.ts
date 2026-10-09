@@ -27,6 +27,7 @@ function buildInvocation(request: SimulationRequest): {
   }
   args.push("--quantum", String(request.quantum ?? 2));
   args.push("--aging", String(request.agingRate ?? 0));
+  args.push("--switch-cost", String(request.switchCost ?? 0));
 
   const input = request.processes
     .map((p) => `${p.id} ${p.arrivalTime} ${p.burstTime} ${p.priority}`)

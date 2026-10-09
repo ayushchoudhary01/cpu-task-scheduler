@@ -15,6 +15,7 @@ struct CommandLine {
     std::string algorithm = "FCFS";
     int quantum = 2;                       // Round Robin only
     int agingRate = 0;                     // Priority only, 0 disables aging
+    int switchCost = 0;                    // ticks lost per context switch
     std::string inputPath;                 // empty means read standard input
     int generateCount = 0;                 // >0 means make up a workload instead
     unsigned seed = 1;                     // seed for --generate
