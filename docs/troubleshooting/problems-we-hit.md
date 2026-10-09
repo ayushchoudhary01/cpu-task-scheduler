@@ -7,24 +7,6 @@ design flaws found by working an answer out on paper.
 Kept because the fixes are more useful than the finished code alone, and because
 several of these will happen again to anyone else building on Windows.
 
----
-
-## Environment
-
-### No C++ compiler at all
-
-**Symptom.** Nothing to build with. `g++`, `gcc`, `clang`, `cl`, `make` and
-`cmake` all absent.
-
-**Cause.** Windows does not ship a C++ compiler, and VS Code does not include
-one - it is an editor that calls tools already installed. Other languages hide
-this because installing Python or Node brings a runtime with it.
-
-**Fix.** `winget install -e --id BrechtSanders.WinLibs.POSIX.UCRT`, then a new
-terminal.
-
-**Lesson.** "Which compiler?" is the first question on a C++ project, not an
-afterthought. It should be settled before the first line of code.
 
 ---
 
@@ -124,7 +106,160 @@ whether or not the change worked.
 
 ---
 
+### Smart App Control escalated to blocking the toolchain
+
+**Symptom.** Having previously blocked compiled binaries now and then, Smart App
+Control started blocking the compiler itself:
+
+```
+cmake   -> 0xC0E90002
+ninja   -> 0xC0E90002
+g++     -> exit 1, and no error message at all
+```
+
+`g++ --version` still worked, which made it look fine; actually compiling
+anything failed silently, because the internal `cc1plus` process was being
+killed at load time.
+
+The web app failed at the same time with:
+
+```
+the scheduler failed
+exited with code 3236495362
+```
+
+**Cause.** 3236495362 is 0xC0E90002, a Windows process-launch failure. The event
+log named the exact file - `scheduler.exe` was being killed while loading
+**`libgcc_s_seh-1.dll`**, an unsigned support library that ships with the MinGW
+compiler. The program never reached `main()`, so there was nothing in our own
+code to debug.
+
+**Attempted fix.** Link the GCC runtime into the executable with
+`-static-libgcc -static-libstdc++`, removing the dependency on that DLL. The
+change is in `CMakeLists.txt` and is correct - but it cannot be applied on a
+machine where the compiler itself is blocked.
+
+**Real fix.** Build in WSL (below).
+
+**Lesson.** Smart App Control and compiling your own code do not coexist, and it
+gets stricter over time rather than settling down. On a machine where it is
+enforcing, decide early: turn it off, or build in Linux. Working around it costs
+more time than either.
+
+---
+
+### "Operation not permitted" building on the Windows drive
+
+**Symptom.** Configuring the project from Ubuntu, against the source on `C:`,
+failed repeatedly:
+
+```
+CMake Error at CMakeDetermineSystem.cmake:225 (configure_file):
+  Operation not permitted
+```
+
+although the compiler itself was found and worked:
+
+```
+-- Check for working CXX compiler: /usr/bin/c++ - works
+```
+
+**Cause.** `configure_file` copies a file and then sets its permissions. The
+Windows drive mounted at `/mnt/c` does not support Linux file permissions, so
+every `chmod` failed.
+
+**Fix.** Read the source from `/mnt/c`, write the build output into the Linux
+filesystem:
+
+```bash
+cmake -S /mnt/c/Projects/cpu-task-scheduler -B ~/scheduler-build -G Ninja
+cmake --build ~/scheduler-build
+```
+
+**Lesson.** In WSL, keep build output on the Linux side. It sidesteps the
+permission problem completely and is several times faster, because file access
+no longer crosses between the two systems. The source can stay on `C:` and git
+keeps working normally.
+
+---
+
+### wsl.exe runs the wrong distribution
+
+**Symptom.** Having built successfully in Ubuntu, running the binary from
+Windows failed:
+
+```
+execvpe(/home/ayush/scheduler-build/bin/scheduler) failed: No such file or directory
+```
+
+Asking WSL where its home directory was gave an answer that was obviously not
+Linux:
+
+```
+$ wsl.exe -e sh -c 'echo $HOME'
+C:Usersayush
+```
+
+**Cause.** `wsl.exe` with no arguments runs the **default** distribution. With
+Docker Desktop installed, that default is `docker-desktop`, not Ubuntu. The
+binary genuinely did not exist there.
+
+**Fix.** Name the distribution every time:
+
+```bash
+wsl.exe -d Ubuntu -e /home/ayush/scheduler-build/bin/scheduler --format json
+```
+
+The server does the same, with the distribution configurable through
+`SCHEDULER_WSL_DISTRO`.
+
+**Lesson.** A nonsensical answer - a Windows path reported as a Linux `$HOME` -
+usually means you are talking to something other than what you think.
+
+---
+
 ## Bugs in our own code
+
+### The interface accepted workloads it could never draw
+
+**Symptom.** The web app reported:
+
+```
+the simulation took too long and was stopped
+```
+
+**Cause.** Not the simulation - the size of its result. A Gantt chart has one
+block per uninterrupted run, so the total burst time bounds how many blocks
+there are. At the worst case, Round Robin with a quantum of 1, every single tick
+becomes its own block.
+
+Validation allowed 200 processes of 10000 ticks each. That is two million
+blocks:
+
+| Workload | Ticks | Time | JSON produced |
+|---|--:|--:|--:|
+| `examples/sample.txt` | 13 | 59 ms | 1 KB |
+| 20 x 1000 | 20,000 | 154 ms | 1.2 MB |
+| 50 x 2000 | 100,000 | 297 ms | 5.6 MB |
+| 200 x 10000 | 2,000,000 | **9.0 s** | **119 MB** |
+
+Nine seconds against a five second limit - and even if it had arrived, no
+browser would draw two million elements and no human could read them.
+
+**Fix.** Cap the *total* work in `validate.ts` and fail immediately with a
+message that says what to change. The per-process limits were not enough on
+their own, because twenty processes of 1000 ticks cost exactly as much as one of
+20000.
+
+The Gantt chart also now skips its entry animation above 300 blocks; thousands
+of elements each running their own transition was the slowest thing on the page.
+
+**Lesson.** Validate what the *output* will cost, not just whether the input
+looks sensible. Every individual value here was within its limit; the
+combination was not. And a timeout is a bad error message - it says something
+took too long, not what the user should do differently.
+
+---
 
 ### A UTF-8 byte order mark stuck to the first process id
 

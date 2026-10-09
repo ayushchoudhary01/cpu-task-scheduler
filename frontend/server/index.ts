@@ -39,14 +39,14 @@ app.get("/api/algorithms", (_req, res) => {
   res.json({ algorithms: KNOWN_ALGORITHMS });
 });
 
-app.get("/api/health", (_req, res) => {
-  const binary = findScheduler();
+app.get("/api/health", async (_req, res) => {
+  const scheduler = await findScheduler();
   res.json({
-    ready: binary !== null,
-    binary,
-    message: binary
-      ? "scheduler binary found"
-      : "scheduler binary not found - build the C++ project first",
+    ready: scheduler !== null,
+    binary: scheduler?.label ?? null,
+    message: scheduler
+      ? `scheduler found: ${scheduler.label}`
+      : "scheduler not found - build the C++ project first",
   });
 });
 
@@ -57,8 +57,8 @@ app.post("/api/simulate", async (req, res) => {
     return;
   }
 
-  const binary = findScheduler();
-  if (!binary) {
+  const scheduler = await findScheduler();
+  if (!scheduler) {
     res.status(503).json({
       errors: [
         "The scheduler program has not been built yet.",
@@ -69,7 +69,7 @@ app.post("/api/simulate", async (req, res) => {
   }
 
   const { args, input } = buildInvocation(request);
-  const outcome = await runScheduler(binary, args, input);
+  const outcome = await runScheduler(scheduler, args, input);
 
   if (outcome.timedOut) {
     res.status(504).json({ errors: ["the simulation took too long and was stopped"] });
@@ -96,8 +96,10 @@ if (existsSync(builtUi)) {
 }
 
 const port = Number(process.env.PORT ?? 5174);
-app.listen(port, () => {
-  const binary = findScheduler();
+app.listen(port, async () => {
   console.log(`API listening on http://localhost:${port}`);
-  console.log(binary ? `Using scheduler: ${binary}` : "WARNING: scheduler binary not built yet");
+  const scheduler = await findScheduler();
+  console.log(
+    scheduler ? `Using scheduler: ${scheduler.label}` : "WARNING: scheduler not built yet",
+  );
 });

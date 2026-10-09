@@ -16,6 +16,38 @@ netstat -ano | grep LISTENING | grep -E ":517[34]"
 
 You want **exactly two** lines - one for 5173 (UI) and one for 5174 (API).
 
+## Which binary is the server using?
+
+`/api/health` says, and so does the server's startup line:
+
+```
+Using scheduler: /home/ayush/scheduler-build/bin/scheduler (WSL: Ubuntu)
+```
+
+The server looks in this order:
+
+1. `SCHEDULER_BIN`, if set - used exactly as given
+2. a **Linux build inside WSL**, on Windows only
+3. a native binary in `build/bin/` then `build-dbg/bin/`
+
+A WSL build is preferred over a Windows one, which looks backwards until you
+have met Smart App Control - it blocks the unsigned GCC runtime DLLs that a
+MinGW build needs, killing the program before it reaches `main()`. See
+[build and toolchain](build-and-toolchain.md#building-under-wsl).
+
+Two environment variables adjust the WSL lookup:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `SCHEDULER_WSL_DISTRO` | `Ubuntu` | which distribution to use |
+| `SCHEDULER_WSL_PATH` | `scheduler-build/bin/scheduler` | path relative to the Linux `$HOME` |
+
+To force the Windows binary instead:
+
+```bash
+SCHEDULER_BIN=build/bin/scheduler.exe npm run dev
+```
+
 ## The page says "scheduler binary not found"
 
 The C++ program has not been built. See [building](../getting-started/building.md):

@@ -15,6 +15,22 @@ else()
     set(WARNING_FLAGS -Wall -Wextra)
 endif()
 
+# With MinGW, link the GCC runtime into the executables rather than depending on
+# libgcc_s_seh-1.dll and libstdc++-6.dll at run time.
+#
+# Those two DLLs live in the compiler's own directory and are unsigned, which
+# makes them exactly the kind of thing Windows Smart App Control blocks. When it
+# does, the program dies on startup with status 0xC0E90002 and no useful
+# message - it never reaches main().
+#
+# Linking them in also makes the binaries self-contained: they can be copied to
+# a machine with no compiler installed and still run.
+if(MINGW)
+    set(STATIC_RUNTIME_FLAGS -static-libgcc -static-libstdc++)
+else()
+    set(STATIC_RUNTIME_FLAGS "")
+endif()
+
 # The scheduling logic. Both the CLI and the tests use this.
 add_library(scheduler_core
     core/Timeline.cpp
@@ -47,6 +63,7 @@ target_compile_options(scheduler_cli PRIVATE ${WARNING_FLAGS})
 add_executable(scheduler cli/main.cpp)
 target_link_libraries(scheduler PRIVATE scheduler_cli)
 target_compile_options(scheduler PRIVATE ${WARNING_FLAGS})
+target_link_options(scheduler PRIVATE ${STATIC_RUNTIME_FLAGS})
 
 # The tests.
 enable_testing()
@@ -61,4 +78,5 @@ add_executable(scheduler_tests
 target_link_libraries(scheduler_tests PRIVATE scheduler_cli)
 target_include_directories(scheduler_tests PRIVATE tests)
 target_compile_options(scheduler_tests PRIVATE ${WARNING_FLAGS})
+target_link_options(scheduler_tests PRIVATE ${STATIC_RUNTIME_FLAGS})
 add_test(NAME unit_tests COMMAND scheduler_tests)

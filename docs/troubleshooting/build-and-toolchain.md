@@ -77,21 +77,61 @@ or 3118.
 The verdict is per-binary and inconsistent: one executable runs while another,
 compiled seconds later from the same project, does not.
 
+It can also escalate. Once it starts blocking the *toolchain* - `cmake`, `ninja`
+and `g++`'s internal `cc1plus` - you cannot build at all, and `g++` fails with
+exit code 1 and no error message whatsoever.
+
 **Options:**
 
 1. **Turn Smart App Control off** - Windows Security → App & browser control →
    Smart App Control → Off. **This is permanent**; re-enabling it requires
    reinstalling Windows. Microsoft designed it that way.
-2. **Build in a second directory.** A differently built binary often gets a
-   different verdict:
-   ```bash
-   cmake -S . -B build-dbg -G Ninja -DCMAKE_BUILD_TYPE=Debug
-   cmake --build build-dbg
-   ```
-   A workaround, not a fix - and it creates the stale-binary problem above.
-3. **Build under WSL.** Linux binaries are not subject to it.
+2. **Build under WSL** (see below). Linux binaries are not subject to it, and
+   this is reversible.
 
-There is no way to sign your own builds around this.
+There is no way to sign your own builds around it, and Smart App Control has no
+exclusion list - it is all or nothing by design.
+
+## Building under WSL
+
+The route taken on the machine this project was developed on. Windows keeps its
+security settings; the C++ is built in Linux and reached through `wsl.exe`,
+which is signed by Microsoft and so is never blocked.
+
+```powershell
+wsl --install -d Ubuntu
+```
+
+Then inside Ubuntu:
+
+```bash
+sudo apt update && sudo apt install -y build-essential cmake ninja-build
+```
+
+```bash
+cmake -S /mnt/c/Projects/cpu-task-scheduler -B ~/scheduler-build -G Ninja
+cmake --build ~/scheduler-build
+~/scheduler-build/bin/scheduler_tests
+```
+
+**Build into `~`, not into the project directory.** CMake sets permissions on
+the files it writes, and the Windows drive mounted at `/mnt/c` does not support
+Linux permissions - every `configure_file` fails with *"Operation not
+permitted"*. Building in the Linux filesystem avoids that entirely and is
+several times faster, since file access no longer crosses between the two
+systems. The source stays on `C:`; only the build output lives in Linux.
+
+The web server finds this automatically - see
+[running the web app](running-the-web-app.md#which-binary-is-the-server-using).
+
+Two things worth knowing:
+
+- **`wsl.exe` on its own runs the *default* distribution**, which on a machine
+  with Docker Desktop installed is Docker's own helper image, not Ubuntu. The
+  distribution always has to be named: `wsl -d Ubuntu`.
+- **Docker Desktop's `docker-desktop` entry is not a usable distribution.** It
+  is Alpine-based, managed by Docker, and reset whenever Docker is. Having it
+  does not mean you have a Linux environment to work in.
 
 ## MSYS2: `msys-2.0.dll ... Error status 0xc0e90002`
 
