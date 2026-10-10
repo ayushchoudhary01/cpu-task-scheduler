@@ -33,14 +33,14 @@ and re-run both commands to get it back; nothing you write ever lives there.
 
 | Output | What it is |
 |--------|------------|
-| `build/bin/scheduler.exe` | the command line program |
-| `build/bin/scheduler_tests.exe` | the test suite |
+| `build/bin/scheduler` | the command line program |
+| `build/bin/scheduler_tests` | the test suite |
 | `build/libscheduler_core.a` | the scheduling logic, linked into both |
 
 ## Running the tests
 
 ```bash
-./build/bin/scheduler_tests.exe
+./build/bin/scheduler_tests
 ```
 
 Expect a tally like:
@@ -61,7 +61,7 @@ ctest --test-dir build --output-on-failure
 For one source file you could compile by hand:
 
 ```bash
-g++ cli/main.cpp -o scheduler.exe
+g++ cli/main.cpp -o scheduler
 ```
 
 With around thirty files across `core/`, `cli/` and `tests/`, plus flags for the

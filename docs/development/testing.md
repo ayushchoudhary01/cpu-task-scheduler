@@ -1,7 +1,7 @@
 # Testing
 
 ```bash
-cmake --build build && ./build/bin/scheduler_tests.exe
+cmake --build build && ./build/bin/scheduler_tests
 ```
 
 ```

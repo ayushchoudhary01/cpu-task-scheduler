@@ -6,7 +6,7 @@ same C++ code, so they always agree.
 ## The command line
 
 ```bash
-./build/bin/scheduler.exe --algorithm SJF --input examples/sample.txt
+./build/bin/scheduler --algorithm SJF --input examples/sample.txt
 ```
 
 ```
@@ -58,7 +58,7 @@ work.
 ### Comparing
 
 ```bash
-./build/bin/scheduler.exe --compare all --input examples/sample.txt
+./build/bin/scheduler --compare all --input examples/sample.txt
 ```
 
 ```
@@ -80,7 +80,7 @@ waits**, not how much work there is.
 ### Making up a workload
 
 ```bash
-./build/bin/scheduler.exe --generate 8 --seed 42 --compare all
+./build/bin/scheduler --generate 8 --seed 42 --compare all
 ```
 
 The generated workload is printed above the results in the same format the
@@ -94,7 +94,7 @@ With no `--input`, the program reads stdin:
 
 ```bash
 echo "A 0 4
-B 1 2" | ./build/bin/scheduler.exe -a SRTF
+B 1 2" | ./build/bin/scheduler -a SRTF
 ```
 
 ## The workload file format

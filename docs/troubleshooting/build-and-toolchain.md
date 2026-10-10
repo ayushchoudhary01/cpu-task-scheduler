@@ -174,7 +174,7 @@ workload every time.
 rm -rf build build-dbg
 cmake -S . -B build -G Ninja
 cmake --build build
-./build/bin/scheduler_tests.exe
+./build/bin/scheduler_tests
 ```
 
 Nothing you wrote lives in either directory.

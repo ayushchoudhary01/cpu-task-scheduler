@@ -134,8 +134,8 @@ refuses.
 ```bash
 cmake -S . -B build -G Ninja      # re-run: CMakeLists.txt changed
 cmake --build build
-./build/bin/scheduler_tests.exe
-./build/bin/scheduler.exe --compare all -i examples/sample.txt
+./build/bin/scheduler_tests
+./build/bin/scheduler --compare all -i examples/sample.txt
 ```
 
 ## If your algorithm needs a setting

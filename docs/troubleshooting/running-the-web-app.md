@@ -7,7 +7,7 @@ curl http://localhost:5174/api/health
 ```
 
 ```json
-{"ready":true,"binary":"C:\\...\\build\\bin\\scheduler.exe","message":"scheduler binary found"}
+{"ready":true,"binary":"/home/you/scheduler-build/bin/scheduler","message":"scheduler binary found"}
 ```
 
 ```bash
@@ -45,7 +45,7 @@ Two environment variables adjust the WSL lookup:
 To force the Windows binary instead:
 
 ```bash
-SCHEDULER_BIN=build/bin/scheduler.exe npm run dev
+SCHEDULER_BIN=build/bin/scheduler npm run dev
 ```
 
 ## The page says "scheduler binary not found"
@@ -60,12 +60,12 @@ The server looks in `build/bin/` first, then `build-dbg/bin/`. You can point it
 somewhere else:
 
 ```bash
-SCHEDULER_BIN=/path/to/scheduler.exe npm run start
+SCHEDULER_BIN=/path/to/scheduler npm run start
 ```
 
 ## "unknown option '--format'" or similar nonsense from the scheduler
 
-**A stale binary.** The server found an older `scheduler.exe` that predates the
+**A stale binary.** The server found an older `scheduler` that predates the
 flag being used.
 
 This happens when you have two build directories and only rebuild one. The
@@ -79,7 +79,7 @@ cmake --build build-dbg    # if you use it
 Check what it is actually running:
 
 ```bash
-./build/bin/scheduler.exe --list
+./build/bin/scheduler --list
 ```
 
 ## Requests hang forever, no error anywhere
@@ -198,7 +198,7 @@ unreadable even if it arrived.
 Reduce the burst times, or use the command line, which has no such limit:
 
 ```bash
-./build/bin/scheduler.exe -a RR -q 1 -i big-workload.txt
+./build/bin/scheduler -a RR -q 1 -i big-workload.txt
 ```
 
 The quantum is the multiplier to watch - quantum 1 is the worst case, and
@@ -224,7 +224,7 @@ The web interface and the terminal run the same binary, so they must agree. When
 a number looks wrong, check it directly:
 
 ```bash
-./build/bin/scheduler.exe -a SRTF -i examples/sample.txt
+./build/bin/scheduler -a SRTF -i examples/sample.txt
 ```
 
 If the CLI agrees with the browser, the C++ is doing what it was asked and the

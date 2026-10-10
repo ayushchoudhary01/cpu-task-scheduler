@@ -61,11 +61,11 @@ cpu-task-scheduler/
 `CMakeLists.txt` builds two libraries and two programs:
 
 ```
-scheduler_core  ──┬──> scheduler_cli ──┬──> scheduler.exe
-                  │                    └──> scheduler_tests.exe
+scheduler_core  ──┬──> scheduler_cli ──┬──> scheduler
+                  │                    └──> scheduler_tests
 ```
 
-If everything were compiled straight into `scheduler.exe`, the tests could only
+If everything were compiled straight into `scheduler`, the tests could only
 poke at it from outside - running the program and checking its printed output.
 Making the logic a library means tests link against **exactly the code that
 ships** and can call it directly.

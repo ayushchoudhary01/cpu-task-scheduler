@@ -12,7 +12,7 @@ flowchart LR
         VAL["validate.ts"]
         SPAWN["scheduler.ts"]
     end
-    subgraph cpp["C++ (scheduler.exe)"]
+    subgraph cpp["C++ (scheduler)"]
         PARSE["workload parser"]
         ENGINE["engine + policy"]
         OUT["JSON writer"]

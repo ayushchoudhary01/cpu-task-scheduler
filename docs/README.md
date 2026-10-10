@@ -52,8 +52,8 @@ Everything about this project that does not belong in the top-level README.
 ```bash
 cmake -S . -B build -G Ninja      # configure, once
 cmake --build build               # compile
-./build/bin/scheduler_tests.exe   # run the C++ tests
+./build/bin/scheduler_tests   # run the C++ tests
 cd frontend && npm test           # run the web tests
-./build/bin/scheduler.exe --help  # see the options
+./build/bin/scheduler --help  # see the options
 cd frontend && npm run dev        # web interface on http://localhost:5173
 ```

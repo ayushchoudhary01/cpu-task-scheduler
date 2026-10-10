@@ -86,7 +86,7 @@ already waiting.
 ### Without aging
 
 ```bash
-./build/bin/scheduler.exe -a Priority -i examples/starvation.txt
+./build/bin/scheduler -a Priority -i examples/starvation.txt
 ```
 
 ```
@@ -99,7 +99,7 @@ LOW  completed=11  turnaround=11  waiting=8  response=8
 ### With aging
 
 ```bash
-./build/bin/scheduler.exe -a Priority -g 1 -i examples/starvation.txt
+./build/bin/scheduler -a Priority -g 1 -i examples/starvation.txt
 ```
 
 ```

@@ -1,10 +1,8 @@
 <div align="center">
 
-# CPU Task Scheduler
+# CPU Scheduler Simulator
 
-### A CPU scheduling simulator with a real C++ engine
-
-*Five classic algorithms. A tick-accurate engine. A Gantt chart in your terminal — and in your browser.*
+### Five classic algorithms. A tick-accurate engine. A Gantt chart in your browser.
 
 <br>
 
@@ -13,9 +11,9 @@
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Tailwind](https://img.shields.io/badge/Tailwind-4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-
+<!-- [![Tests](https://img.shields.io/badge/tests-292%20passing-22c55e?style=flat-square)](docs/development/testing.md) -->
 [![Algorithms](https://img.shields.io/badge/algorithms-5-8b5cf6?style=flat-square)](docs/algorithms/README.md)
-<!-- [![Dependencies](https://img.shields.io/badge/C%2B%2B%20dependencies-0-orange?style=flat-square)](CMakeLists.txt) -->
+[![Dependencies](https://img.shields.io/badge/C%2B%2B%20dependencies-stdlib%20only-f97316?style=flat-square)](CMakeLists.txt)
 <!-- [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE) -->
 
 <br>
@@ -29,9 +27,9 @@
 
 ---
 
-##  See it run
+## See it run
 
-One workload, four algorithms, side by side — same work, completely different experience:
+One workload, five algorithms, side by side — same work, completely different experience:
 
 ```
 Comparison of 5 algorithms on 4 processes
@@ -74,10 +72,10 @@ Averages
 
 <a id="quick-start"></a>
 
-##  Quick start
+## Quick start
 
 <table>
-<tr><td width="60"><h3 align="center">1️⃣</h3></td>
+<tr><td width="60"><h3 align="center"></h3></td>
 <td>
 
 **Get a compiler** — Windows doesn't ship one *(skip if `g++ --version` works)*
@@ -87,7 +85,7 @@ winget install -e --id BrechtSanders.WinLibs.POSIX.UCRT
 ```
 
 </td></tr>
-<tr><td><h3 align="center">2️⃣</h3></td>
+<tr><td><h3 align="center"></h3></td>
 <td>
 
 **Build it**
@@ -100,17 +98,17 @@ cmake --build build
 <sub>On Windows with Smart App Control on, build in WSL instead &mdash; [how](docs/troubleshooting/build-and-toolchain.md#building-under-wsl)</sub>
 
 </td></tr>
-<tr><td><h3 align="center">3️⃣</h3></td>
+<tr><td><h3 align="center"></h3></td>
 <td>
 
 **Run it**
 
 ```bash
-./build/bin/scheduler.exe --compare all -i examples/sample.txt
+./build/bin/scheduler --compare all -i examples/sample.txt
 ```
 
 </td></tr>
-<tr><td><h3 align="center">4️⃣</h3></td>
+<tr><td><h3 align="center"></h3></td>
 <td>
 
 **Or open the web interface** → [localhost:5173](http://localhost:5173)
@@ -128,29 +126,29 @@ cd frontend && npm install && npm run dev
 
 <a id="algorithms"></a>
 
-##  The algorithms
+## The algorithms
 
 <div align="center">
 
-| | Algorithm | Preemptive | Picks |  Best at |
-|:--:|:--|:--:|:--|:--|
-| 🔵 | [**FCFS**](docs/algorithms/fcfs.md) | ❌ | whoever arrived first | simplicity, zero overhead |
-| 🟢 | [**SJF**](docs/algorithms/sjf.md) | ❌ | the shortest waiting job | *provably* optimal waiting time |
-| 🟣 | [**SRTF**](docs/algorithms/srtf.md) | ✅ | the shortest remaining time | lowest waiting time overall |
-| 🟠 | [**Round Robin**](docs/algorithms/round-robin.md) | ✅ | next in the queue | responsiveness, no starvation |
-| 🔴 | [**Priority + aging**](docs/algorithms/priority-and-aging.md) | ❌ | the most important | honouring importance, safely |
+| Algorithm | Preemptive | Picks |  Best at |
+|:--|:--:|:--|:--|
+| [**FCFS**](docs/algorithms/fcfs.md) | ❌ | whoever arrived first | simplicity, zero overhead |
+| [**SJF**](docs/algorithms/sjf.md) | ❌ | the shortest waiting job | *provably* optimal waiting time |
+| [**SRTF**](docs/algorithms/srtf.md) | ✅ | the shortest remaining time | lowest waiting time overall |
+| [**Round Robin**](docs/algorithms/round-robin.md) | ✅ | next in the queue | responsiveness, no starvation |
+| [**Priority + aging**](docs/algorithms/priority-and-aging.md) | ❌ | the most important | honouring importance, safely |
 
 </div>
 
 <details>
-<summary><b>🍽️ See starvation happen — and then get fixed</b></summary>
+<summary><b> See starvation happen — and then get fixed</b></summary>
 
 <br>
 
 An unimportant process against a stream of urgent ones:
 
 ```bash
-./build/bin/scheduler.exe -a Priority -i examples/starvation.txt
+./build/bin/scheduler -a Priority -i examples/starvation.txt
 ```
 
 ```
@@ -160,7 +158,7 @@ LOW  completed=11  waiting=8  response=8      😵 never runs until tick 8
 Now turn **aging** on — waiting earns importance:
 
 ```bash
-./build/bin/scheduler.exe -a Priority -g 1 -i examples/starvation.txt
+./build/bin/scheduler -a Priority -g 1 -i examples/starvation.txt
 ```
 
 ```
@@ -229,7 +227,7 @@ return selectBest(ready, [](const ReadyProcess&, const ReadyProcess&) { return f
 ```
 
 <details>
-<summary><b>🐛 And it makes the classic SRTF hang impossible</b></summary>
+<summary><b> And it makes the classic SRTF hang impossible</b></summary>
 
 <br>
 
@@ -274,11 +272,11 @@ for the exact workload, plus a deliberately absurd policy that preempts on
 |:--:|:--|:--|
 |  | **Hand-computed expectations** | Every number worked out on paper first — never captured from a run. It caught a real design flaw *and* an arithmetic error of mine. |
 |  | **Property tests** | Textbook claims asserted, not commented: SJF beats FCFS; RR responds faster; RR with a huge quantum *is* FCFS. |
-|  | **Invariants over random workloads** | 20 generated workloads × 5 algorithms = **100 simulations**, each checked against 6 rules that must always hold. |
+|  | **Invariants over generated workloads** | 20 generated workloads × 5 algorithms = **100 simulations**, each checked against 6 rules that must always hold. |
 |  | **Stub policies** | An `AlwaysPreempt` policy nothing sane would use, purely to stress the engine. |
 
 ```bash
-./build/bin/scheduler_tests.exe        # 292 C++ checks
+./build/bin/scheduler_tests        # 292 C++ checks
 cd frontend && npm test                # 26 web checks
 ```
 
@@ -294,7 +292,7 @@ cd frontend && npm test                # 26 web checks
 - Tick-accurate simulation
 - 5 pluggable algorithms
 - Deterministic tie-breaking
-- Zero dependencies
+- stdlib only
 
 </td>
 <td width="33%" valign="top">
@@ -327,10 +325,10 @@ cpu-task-scheduler/
 ├── 📂 core/        the scheduling logic — no I/O, no dependencies
 │   └── policies/   one small class per algorithm
 ├── 📂 cli/         parsers + Gantt/table/JSON renderers
-├── 📂 tests/       258 checks; a ~30-line test helper, no framework
+├── 📂 tests/       292 checks; a ~30-line test helper, no framework
 ├── 📂 frontend/    React + TypeScript UI, Express bridge to the binary
 ├── 📂 examples/    sample and starvation workloads
-└── 📂 docs/        20 pages — algorithms, architecture, troubleshooting
+└── 📂 docs/        21 pages — algorithms, architecture, troubleshooting
 ```
 
 ---
@@ -374,7 +372,7 @@ scheduler [options]
 | `-l`, `--list` &nbsp; `-h`, `--help` | list algorithms · show usage |
 
 <details>
-<summary><b>📄 Workload file format</b></summary>
+<summary><b> Workload file format</b></summary>
 
 <br>
 

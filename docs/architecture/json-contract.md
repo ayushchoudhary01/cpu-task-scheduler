@@ -7,7 +7,7 @@ in [`cli/JsonReport.cpp`](../../cli/JsonReport.cpp) and mirrored as TypeScript i
 ## One simulation
 
 ```bash
-./build/bin/scheduler.exe -a SJF -f json -i examples/sample.txt
+./build/bin/scheduler -a SJF -f json -i examples/sample.txt
 ```
 
 ```json
@@ -124,7 +124,7 @@ The tests check bracket balance, but that is not proof it parses. Pipe it
 through a real parser:
 
 ```bash
-./build/bin/scheduler.exe --compare all -f json -i examples/sample.txt > out.json
+./build/bin/scheduler --compare all -f json -i examples/sample.txt > out.json
 node -e "const j=require('./out.json'); console.log(j.runs.length, 'runs')"
 ```
 
